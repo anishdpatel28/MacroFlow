@@ -127,6 +127,12 @@ body {
   margin: 0;
 }
 
+.macro-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
 .macro-info p {
   font-size: 0.875rem;
   color: #64748b;
@@ -578,7 +584,7 @@ body {
   background: white;
   border-top: 1px solid #e5e7eb;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  z-index: 1;
   max-height: 40vh;
   display: flex;
   flex-direction: column;
@@ -668,6 +674,13 @@ body {
   background: transparent !important;
   color: transparent !important;
   caret-color: #1e293b;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
+  font-size: 0.875rem;
+  padding: 0.75rem;
+  border: none;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .command-input-hidden::placeholder {
@@ -762,7 +775,8 @@ body {
 .terminal-prompt {
   color: #10b981;
   font-weight: 500;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
+  font-size: 0.75rem;
 }
 
 .terminal-input {
@@ -770,8 +784,8 @@ body {
   background: transparent;
   border: none;
   color: #e2e8f0;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 0.875rem;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
+  font-size: 0.75rem;
   outline: none;
 }
 
@@ -780,10 +794,10 @@ body {
 }
 
 .terminal-line {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 0.875rem;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
+  font-size: 0.75rem;
   color: #e2e8f0;
-  line-height: 1.5;
+  line-height: 1.4;
   white-space: pre-wrap;
   word-break: break-word;
 }
