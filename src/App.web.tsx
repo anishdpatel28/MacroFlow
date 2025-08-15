@@ -41,6 +41,20 @@ const App: React.FC = () => {
     filter: string;
   } | null>(null);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+
+  // Check if macro command is installed
+  useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.executeCommand("which macro").then((result: any) => {
+        if (result.error || !result.stdout.trim()) {
+          setShowInstallPrompt(true);
+        }
+      }).catch(() => {
+        setShowInstallPrompt(true);
+      });
+    }
+  }, []);
 
   // Load macros from localStorage on component mount
   useEffect(() => {
@@ -233,6 +247,8 @@ const App: React.FC = () => {
         // Display results in terminal
         const output: string[] = [];
         results.forEach((result: any, index: number) => {
+          // Show the command being executed
+          output.push(result.command);
           if (result.error) {
             output.push(result.error);
           } else {
@@ -248,6 +264,18 @@ const App: React.FC = () => {
         setMacros(prev => prev.map(m =>
           m.id === macro.id ? { ...m, lastRun: new Date() } : m
         ));
+
+        // Scroll to bottom after macro execution
+        setTimeout(() => {
+          const terminalOutput = document.querySelector('.terminal-output');
+          if (terminalOutput) {
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+          }
+          const terminalContent = document.querySelector('.terminal-content');
+          if (terminalContent) {
+            terminalContent.scrollTop = terminalContent.scrollHeight;
+          }
+        }, 0);
       } else {
         // Fallback for web version - simulate execution
         setTimeout(() => {
@@ -317,6 +345,11 @@ const App: React.FC = () => {
         const terminalOutput = document.querySelector('.terminal-output');
         if (terminalOutput) {
           terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+        // Also scroll the terminal content
+        const terminalContent = document.querySelector('.terminal-content');
+        if (terminalContent) {
+          terminalContent.scrollTop = terminalContent.scrollHeight;
         }
       }, 0);
     } else if (e.key === 'ArrowUp') {
@@ -495,27 +528,29 @@ const App: React.FC = () => {
           <div className="sidebar-header">
             <div className="header-top">
               <h3>Macros</h3>
-              <button
-                className="btn-keyboard-shortcuts"
-                onClick={() => setShowKeyboardShortcuts(true)}
-                title="Keyboard Shortcuts"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
-                  <line x1="6" y1="8" x2="6" y2="8" />
-                  <line x1="10" y1="8" x2="10" y2="8" />
-                  <line x1="14" y1="8" x2="14" y2="8" />
-                  <line x1="18" y1="8" x2="18" y2="8" />
-                  <line x1="6" y1="12" x2="6" y2="12" />
-                  <line x1="10" y1="12" x2="10" y2="12" />
-                  <line x1="14" y1="12" x2="14" y2="12" />
-                  <line x1="18" y1="12" x2="18" y2="12" />
-                  <line x1="6" y1="16" x2="6" y2="16" />
-                  <line x1="10" y1="16" x2="10" y2="16" />
-                  <line x1="14" y1="16" x2="14" y2="16" />
-                  <line x1="18" y1="16" x2="18" y2="16" />
-                </svg>
-              </button>
+              <div className="header-actions">
+                <button
+                  className="btn-keyboard-shortcuts"
+                  onClick={() => setShowKeyboardShortcuts(true)}
+                  title="Keyboard Shortcuts"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+                    <line x1="6" y1="8" x2="6" y2="8" />
+                    <line x1="10" y1="8" x2="10" y2="8" />
+                    <line x1="14" y1="8" x2="14" y2="8" />
+                    <line x1="18" y1="8" x2="18" y2="8" />
+                    <line x1="6" y1="12" x2="6" y2="12" />
+                    <line x1="10" y1="12" x2="10" y2="12" />
+                    <line x1="14" y1="12" x2="14" y2="12" />
+                    <line x1="18" y1="12" x2="18" y2="12" />
+                    <line x1="6" y1="16" x2="6" y2="16" />
+                    <line x1="10" y1="16" x2="10" y2="16" />
+                    <line x1="14" y1="16" x2="14" y2="16" />
+                    <line x1="18" y1="16" x2="18" y2="16" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <button className="btn-primary" onClick={handleNewMacro}>
               + New Macro
@@ -575,11 +610,18 @@ const App: React.FC = () => {
                   <p>{macro.description}</p>
                   <div className="macro-meta">
                     <span className="execution-mode">{macro.executionMode}</span>
-                    {macro.lastRun && (
-                      <span className="last-run">
-                        Last run: {macro.lastRun.toLocaleDateString()}
-                      </span>
-                    )}
+                    <div className="macro-dates">
+                      {macro.createdAt && (
+                        <span className="created-date">
+                          Created: {macro.createdAt.toLocaleString()}
+                        </span>
+                      )}
+                      {macro.lastRun && (
+                        <span className="last-run">
+                          Last run: {macro.lastRun.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="macro-actions">
@@ -676,39 +718,20 @@ const App: React.FC = () => {
                 <label>Commands</label>
                 {selectedMacro.commands.map((command, index) => (
                   <div key={index} className="command-input">
-                    <div className="command-input-wrapper">
-                      <div className="command-display">
-                        {command.split(/(\{\{[^}]+\}\})/).map((part, partIndex) => {
-                          if (part.match(/^\{\{[^}]+\}\}$/)) {
-                            const paramName = part.slice(2, -2);
-                            // Only show as block if it's a valid parameter
-                            if (selectedMacro.parameters.includes(paramName)) {
-                              return (
-                                <span key={partIndex} className="parameter-block">
-                                  {paramName}
-                                </span>
-                              );
-                            }
-                          }
-                          return part;
-                        })}
-                      </div>
-                      <input
-                        type="text"
-                        value={command}
-                        onChange={(e) => updateCommand(index, e.target.value, e)}
-                        onKeyDown={(e) => {
-                          // Allow Cmd+A for select all
-                          if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
-                            e.preventDefault();
-                            e.currentTarget.select();
-                          }
-                        }}
-                        placeholder="Enter command (use {{parameter}} for placeholders)"
-                        data-command-index={index}
-                        className="command-input-hidden"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      value={command}
+                      onChange={(e) => updateCommand(index, e.target.value, e)}
+                      onKeyDown={(e) => {
+                        // Allow Cmd+A for select all
+                        if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+                          e.preventDefault();
+                          e.currentTarget.select();
+                        }
+                      }}
+                      placeholder="Enter command (use {{parameter}} for placeholders)"
+                      className="form-input"
+                    />
                     {selectedMacro.commands.length > 1 && (
                       <button
                         className="btn-remove"
@@ -772,7 +795,7 @@ const App: React.FC = () => {
           ) : selectedMacro ? (
             <div className="macro-details">
               <div className="macro-header">
-                <div className="header-left">
+                <div className="header-top-row">
                   <button
                     className="btn-back"
                     onClick={() => {
@@ -786,42 +809,42 @@ const App: React.FC = () => {
                     </svg>
                     Back
                   </button>
-                  <h2 className="macro-title">{selectedMacro.name}</h2>
+                  <div className="macro-actions">
+                    <button
+                      className="btn-copy-command"
+                      onClick={() => {
+                        const command = `macro ${selectedMacro.name} ${selectedMacro.parameters.map(p => `{{${p}}}`).join(' ')}`;
+                        navigator.clipboard.writeText(command);
+                      }}
+                      title="Copy macro command"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
+                    </button>
+                    <button
+                      className="btn-run"
+                      onClick={() => handleExecuteMacro(selectedMacro)}
+                      disabled={isExecuting}
+                    >
+                      {isExecuting ? "Running..." : "Run Macro"}
+                    </button>
+                    <button
+                      className="btn-edit"
+                      onClick={() => handleEditMacro(selectedMacro)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn-delete"
+                      onClick={() => handleDeleteMacro(selectedMacro.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <div className="macro-actions">
-                  <button
-                    className="btn-copy-command"
-                    onClick={() => {
-                      const command = `macro ${selectedMacro.name} ${selectedMacro.parameters.map(p => `{{${p}}}`).join(' ')}`;
-                      navigator.clipboard.writeText(command);
-                    }}
-                    title="Copy macro command"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-                  </button>
-                  <button
-                    className="btn-run"
-                    onClick={() => handleExecuteMacro(selectedMacro)}
-                    disabled={isExecuting}
-                  >
-                    {isExecuting ? "Running..." : "Run Macro"}
-                  </button>
-                  <button
-                    className="btn-edit"
-                    onClick={() => handleEditMacro(selectedMacro)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn-delete"
-                    onClick={() => handleDeleteMacro(selectedMacro.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
+                <h2 className="macro-title">{selectedMacro.name}</h2>
               </div>
 
               <p className="macro-description">{selectedMacro.description}</p>
@@ -835,12 +858,12 @@ const App: React.FC = () => {
                 </div>
                 <div className="info-item">
                   <label>Created:</label>
-                  <span>{selectedMacro.createdAt.toLocaleDateString()}</span>
+                  <span>{selectedMacro.createdAt.toLocaleString()}</span>
                 </div>
                 {selectedMacro.lastRun && (
                   <div className="info-item">
                     <label>Last Run:</label>
-                    <span>{selectedMacro.lastRun.toLocaleDateString()}</span>
+                    <span>{selectedMacro.lastRun.toLocaleString()}</span>
                   </div>
                 )}
               </div>
@@ -956,7 +979,10 @@ const App: React.FC = () => {
               </button>
               <h3>Terminal</h3>
             </div>
-            <div className="terminal-content">
+            <div className="terminal-content" onClick={() => {
+              const input = document.querySelector('.terminal-input') as HTMLInputElement;
+              if (input) input.focus();
+            }}>
               <div className="terminal-output">
                 {terminalOutput.map((line, index) => (
                   <div key={index} className="terminal-line">
@@ -980,13 +1006,53 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {/* Install Prompt */}
+        {showInstallPrompt && (
+          <div className="install-prompt-overlay">
+            <div className="install-prompt-popup">
+              <div className="popup-header">
+                <h3>Install MacroFlow Command</h3>
+              </div>
+              <div className="install-content">
+                <p>MacroFlow needs to install a system-wide command to enable terminal access to your macros.</p>
+                <p>This will allow you to run macros from any terminal using: <code>macro &lt;alias&gt; &lt;parameters&gt;</code></p>
+                <div className="install-actions">
+                  <button
+                    className="btn-primary"
+                    onClick={() => {
+                      if (window.electronAPI) {
+                        window.electronAPI.executeCommand("cd " + process.cwd() + " && ./scripts/install-alias.sh").then((result: any) => {
+                          if (!result.error) {
+                            setShowInstallPrompt(false);
+                            alert("✅ MacroFlow command installed successfully!\n\nYou can now use 'macro <alias> <parameters>' from any terminal.");
+                          } else {
+                            alert("❌ Installation failed. Please run './scripts/install-alias.sh' manually.");
+                          }
+                        });
+                      }
+                    }}
+                  >
+                    Install Now
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => setShowInstallPrompt(false)}
+                  >
+                    Install Later
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Keyboard Shortcuts Popup */}
         {showKeyboardShortcuts && (
           <div className="keyboard-shortcuts-overlay" onClick={() => setShowKeyboardShortcuts(false)}>
             <div className="keyboard-shortcuts-popup" onClick={(e) => e.stopPropagation()}>
               <div className="popup-header">
-                <h3>Keyboard Shortcuts</h3>
                 <button className="btn-close" onClick={() => setShowKeyboardShortcuts(false)}>×</button>
+                <h3>Keyboard Shortcuts</h3>
               </div>
               <div className="shortcuts-content">
                 <div className="shortcut-group">
