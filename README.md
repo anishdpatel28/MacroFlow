@@ -4,19 +4,20 @@ A powerful desktop application for creating, managing, and executing command mac
 
 ## Features
 
-- **🎯 Macro Management**: Create, edit, and organize command macros
-- **⚡ Dual Execution Modes**: Choose between concurrent (all at once) or sequential (one after another) execution
-- **🔧 Parameter Support**: Use placeholders like `{{filepath}}` for dynamic values with intelligent popup selection
-- **💾 Persistent Storage**: Macros are saved locally and persist between sessions
-- **📤 Import/Export**: Share macro collections with JSON export/import
-- **🎨 Beautiful UI**: Modern, responsive interface with smooth animations
-- **🖥️ Cross-Platform**: Works on macOS, Windows, and Linux
-- **🔒 Secure**: Built with Electron security best practices
-- **🖥️ Embedded Terminal**: Full interactive terminal with real command execution, command history, and macro support
-- **📋 Copy Commands**: Copy macro commands to clipboard for external use
-- **🔄 Macro Copying**: Easily duplicate and modify existing macros with "Copy Values" button
-- **🎨 Parameter Highlighting**: Parameters are displayed as highlighted blocks in commands
-- **🔒 Duplicate Prevention**: Prevents creation of macros with duplicate aliases
+- **Macro Management**: Create, edit, and organize command macros
+- **Dual Execution Modes**: Choose between concurrent or sequential execution
+- **Parameter Support**: Use placeholders like `{{filepath}}` for dynamic values
+- **Persistent Storage**: Macros are saved locally and persist between sessions
+- **Import/Export**: Share macro collections with JSON export/import
+- **Beautiful UI**: Modern, responsive interface with smooth animations
+- **Secure**: Built with Electron security best practices
+- **Embedded Terminal**: Full interactive terminal with real command execution, command history, and macro support
+- **Copy Commands**: Copy macro commands to clipboard for external use
+- **Macro Copying**: Easily duplicate and modify existing macros with "Copy Values" button
+- **Parameter Highlighting**: Parameters are displayed as highlighted blocks in commands
+- **Duplicate Prevention**: Prevents creation of macros with duplicate aliases
+- **Keyboard Shortcuts**: Easy access to all shortcuts via keyboard icon
+- **Detailed Timestamps**: Shows creation and last run times with full timestamps
 
 ## Examples
 
@@ -74,7 +75,7 @@ npm run dev
 
 This starts the webpack dev server and launches the Electron application.
 
-**Alternative: Use the development script**
+### Alternative: Use the development script
 
 ```bash
 ./dev.sh
@@ -124,17 +125,17 @@ This creates a standalone macOS application that can be distributed and run with
 
 ### Running Macros
 
-1. **From GUI**: 
+1. **From GUI**:
    - Select a macro from the sidebar
    - Fill in parameter values if needed
    - Click "Run Macro" to execute
    - View results in the embedded terminal
 
-2. **From Embedded Terminal**: 
+2. **From Embedded Terminal**:
    - Type `macro <alias> <parameters>` in the terminal
    - Example: `macro test /path/to/file.js`
 
-3. **From System Terminal**: 
+3. **From System Terminal**:
    - Install aliases: `./scripts/install-alias.sh`
    - Use: `macro <alias> <parameters>`
 
@@ -305,7 +306,7 @@ Once you have MacroFlow running:
 }
 ```
 
-### File Processing
+### File Processing and Automation
 
 ```json
 {
