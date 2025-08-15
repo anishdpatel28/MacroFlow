@@ -20,6 +20,7 @@
     "webpack": "webpack --config webpack.web.config.js",
     "webpack-dev": "webpack serve --config webpack.web.config.js --mode development --port 3000",
     "dev": "./dev.sh",
+    "dev:clean": "./scripts/uninstall-alias.sh",
     "electron-web": "npm run webpack-dev & sleep 3 && npm run electron-dev"
   },
   "dependencies": {
