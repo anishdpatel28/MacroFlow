@@ -9,7 +9,15 @@ echo "🔧 Installing MacroFlow terminal aliases..."
 
 # Get the directory where MacroFlow is installed
 MACROFLOW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MACROFLOW_APP="$MACROFLOW_DIR/dist/macos/MacroFlow.app/Contents/MacOS/MacroFlow"
+
+# Try to find the MacroFlow app (prefer arm64 on Apple Silicon)
+if [[ $(uname -m) == "arm64" ]] && [ -f "$MACROFLOW_DIR/dist/mac-arm64/MacroFlow.app/Contents/MacOS/MacroFlow" ]; then
+    MACROFLOW_APP="$MACROFLOW_DIR/dist/mac-arm64/MacroFlow.app/Contents/MacOS/MacroFlow"
+elif [ -f "$MACROFLOW_DIR/dist/mac/MacroFlow.app/Contents/MacOS/MacroFlow" ]; then
+    MACROFLOW_APP="$MACROFLOW_DIR/dist/mac/MacroFlow.app/Contents/MacOS/MacroFlow"
+else
+    MACROFLOW_APP="$MACROFLOW_DIR/dist/macos/MacroFlow.app/Contents/MacOS/MacroFlow"
+fi
 
 # Check if MacroFlow app exists
 if [ ! -f "$MACROFLOW_APP" ]; then
