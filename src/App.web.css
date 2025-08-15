@@ -35,6 +35,32 @@ body {
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-install-command {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-install-command:hover {
+  background: rgba(102, 126, 234, 0.2);
+  transform: translateY(-1px);
+}
+
 .header h1 {
   font-size: 2rem;
   font-weight: 700;
@@ -239,6 +265,12 @@ body {
 .btn-primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.sidebar-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 
 .btn-primary:disabled {
@@ -727,16 +759,14 @@ body {
   background: transparent !important;
   color: transparent !important;
   caret-color: #1e293b;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
-  font-size: 0.875rem;
+  font-family: inherit;
+  font-size: inherit;
   padding: 0.75rem;
   border: none;
   outline: none;
   width: 100%;
   box-sizing: border-box;
   line-height: 1.5;
-  font-family: inherit;
-  font-size: inherit;
 }
 
 .command-input-hidden::placeholder {
@@ -770,7 +800,7 @@ body {
   background: white;
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
+  max-width: 600px;
   width: 90%;
   max-height: 80vh;
   overflow: hidden;
