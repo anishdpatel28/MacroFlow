@@ -40,6 +40,7 @@ const App: React.FC = () => {
     cursorPosition: number;
     filter: string;
   } | null>(null);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
   // Load macros from localStorage on component mount
   useEffect(() => {
@@ -211,8 +212,8 @@ const App: React.FC = () => {
     // Add to terminal history
     setTerminalHistory(prev => [...prev, macroCommand]);
 
-    // Execute the command in terminal
-    setTerminalOutput(prev => [...prev, `$ ${macroCommand}`]);
+    // Execute the command in terminal (don't duplicate the command line)
+    // setTerminalOutput(prev => [...prev, `$ ${macroCommand}`]);
 
     try {
       // Prepare parameter values
@@ -264,10 +265,13 @@ const App: React.FC = () => {
   const handleTerminalInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       const command = terminalInput.trim();
+
+      // Always add to output, even if empty
+      setTerminalOutput(prev => [...prev, `$ ${command || ''}`]);
+
       if (command) {
         setTerminalHistory(prev => [...prev, command]);
         setTerminalHistoryIndex(-1);
-        setTerminalOutput(prev => [...prev, `$ ${command}`]);
 
         // Handle macro commands
         if (command.startsWith('macro ')) {
@@ -305,16 +309,16 @@ const App: React.FC = () => {
             setTerminalOutput(prev => [...prev, `✅ Command executed: ${command}`]);
           }
         }
-
-        setTerminalInput("");
-        // Scroll to bottom after command
-        setTimeout(() => {
-          const terminalOutput = document.querySelector('.terminal-output');
-          if (terminalOutput) {
-            terminalOutput.scrollTop = terminalOutput.scrollHeight;
-          }
-        }, 0);
       }
+
+      setTerminalInput("");
+      // Scroll to bottom after command
+      setTimeout(() => {
+        const terminalOutput = document.querySelector('.terminal-output');
+        if (terminalOutput) {
+          terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+      }, 0);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       if (terminalHistoryIndex < terminalHistory.length - 1) {
@@ -489,7 +493,30 @@ const App: React.FC = () => {
       <div className="container">
         <nav className="sidebar">
           <div className="sidebar-header">
-            <h3>Macros</h3>
+            <div className="header-top">
+              <h3>Macros</h3>
+              <button
+                className="btn-keyboard-shortcuts"
+                onClick={() => setShowKeyboardShortcuts(true)}
+                title="Keyboard Shortcuts"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+                  <line x1="6" y1="8" x2="6" y2="8" />
+                  <line x1="10" y1="8" x2="10" y2="8" />
+                  <line x1="14" y1="8" x2="14" y2="8" />
+                  <line x1="18" y1="8" x2="18" y2="8" />
+                  <line x1="6" y1="12" x2="6" y2="12" />
+                  <line x1="10" y1="12" x2="10" y2="12" />
+                  <line x1="14" y1="12" x2="14" y2="12" />
+                  <line x1="18" y1="12" x2="18" y2="12" />
+                  <line x1="6" y1="16" x2="6" y2="16" />
+                  <line x1="10" y1="16" x2="10" y2="16" />
+                  <line x1="14" y1="16" x2="14" y2="16" />
+                  <line x1="18" y1="16" x2="18" y2="16" />
+                </svg>
+              </button>
+            </div>
             <button className="btn-primary" onClick={handleNewMacro}>
               + New Macro
             </button>
@@ -565,7 +592,10 @@ const App: React.FC = () => {
                     }}
                     title="Copy macro command"
                   >
-                    📋
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
                   </button>
                   <button
                     className="btn-run"
@@ -651,11 +681,14 @@ const App: React.FC = () => {
                         {command.split(/(\{\{[^}]+\}\})/).map((part, partIndex) => {
                           if (part.match(/^\{\{[^}]+\}\}$/)) {
                             const paramName = part.slice(2, -2);
-                            return (
-                              <span key={partIndex} className="parameter-block">
-                                [{paramName}]
-                              </span>
-                            );
+                            // Only show as block if it's a valid parameter
+                            if (selectedMacro.parameters.includes(paramName)) {
+                              return (
+                                <span key={partIndex} className="parameter-block">
+                                  {paramName}
+                                </span>
+                              );
+                            }
                           }
                           return part;
                         })}
@@ -915,13 +948,13 @@ const App: React.FC = () => {
         {showTerminal && (
           <div className="global-terminal">
             <div className="terminal-header">
-              <h3>Terminal</h3>
               <button
                 className="btn-close"
                 onClick={() => setShowTerminal(false)}
               >
                 ×
               </button>
+              <h3>Terminal</h3>
             </div>
             <div className="terminal-content">
               <div className="terminal-output">
@@ -942,6 +975,61 @@ const App: React.FC = () => {
                   placeholder="Type commands here..."
                   autoFocus
                 />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Keyboard Shortcuts Popup */}
+        {showKeyboardShortcuts && (
+          <div className="keyboard-shortcuts-overlay" onClick={() => setShowKeyboardShortcuts(false)}>
+            <div className="keyboard-shortcuts-popup" onClick={(e) => e.stopPropagation()}>
+              <div className="popup-header">
+                <h3>Keyboard Shortcuts</h3>
+                <button className="btn-close" onClick={() => setShowKeyboardShortcuts(false)}>×</button>
+              </div>
+              <div className="shortcuts-content">
+                <div className="shortcut-group">
+                  <h4>General</h4>
+                  <div className="shortcut-item">
+                    <span className="shortcut-key">Cmd/Ctrl + N</span>
+                    <span className="shortcut-desc">Create new macro</span>
+                  </div>
+                  <div className="shortcut-item">
+                    <span className="shortcut-key">Cmd/Ctrl + I</span>
+                    <span className="shortcut-desc">Import macros</span>
+                  </div>
+                  <div className="shortcut-item">
+                    <span className="shortcut-key">Cmd/Ctrl + E</span>
+                    <span className="shortcut-desc">Export macros</span>
+                  </div>
+                </div>
+                <div className="shortcut-group">
+                  <h4>Editing</h4>
+                  <div className="shortcut-item">
+                    <span className="shortcut-key">Cmd/Ctrl + A</span>
+                    <span className="shortcut-desc">Select all text</span>
+                  </div>
+                  <div className="shortcut-item">
+                    <span className="shortcut-key">Cmd/Ctrl + Z</span>
+                    <span className="shortcut-desc">Undo</span>
+                  </div>
+                  <div className="shortcut-item">
+                    <span className="shortcut-key">Cmd/Ctrl + Y</span>
+                    <span className="shortcut-desc">Redo</span>
+                  </div>
+                </div>
+                <div className="shortcut-group">
+                  <h4>Terminal</h4>
+                  <div className="shortcut-item">
+                    <span className="shortcut-key">↑/↓</span>
+                    <span className="shortcut-desc">Navigate command history</span>
+                  </div>
+                  <div className="shortcut-item">
+                    <span className="shortcut-key">Cmd/Ctrl + A</span>
+                    <span className="shortcut-desc">Select all in terminal</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
