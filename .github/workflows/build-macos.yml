@@ -1,0 +1,81 @@
+name: Build macOS
+
+on:
+  push:
+    branches: [main, develop, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for macOS
+        run: npm run build:macos
+
+      - name: Self-sign macOS app
+        run: |
+          APP_PATH="$(find dist/mac* -name '*.app' -maxdepth 2 | head -n 1)"
+          if [ -n "$APP_PATH" ]; then
+            echo "Self-signing $APP_PATH"
+            codesign --deep --force --sign - "$APP_PATH"
+          else
+            echo "No .app found in dist/ to sign"
+            exit 1
+          fi
+
+      - name: Create ZIP of macOS build
+        run: |
+          cd dist
+          zip -r macos-build.zip .
+
+      - name: Upload macOS build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: dist/macos-build.zip
+          retention-days: 7
+
+  test-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web version
+        run: npm run webpack
+
+      - name: Create ZIP of web build
+        run: |
+          cd build
+          zip -r ../web-build.zip .
+
+      - name: Upload web build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: web-build.zip
+          retention-days: 7
