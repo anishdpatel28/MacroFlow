@@ -519,7 +519,21 @@ const App: React.FC = () => {
   return (
     <div className="app">
       <header className="header">
-        <h1>MacroFlow</h1>
+        <div className="header-left">
+          <h1>MacroFlow</h1>
+          {showInstallPrompt && (
+            <button
+              className="btn-install-command"
+              onClick={() => setShowInstallPrompt(true)}
+              title="Install MacroFlow Command"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
+              Install Command
+            </button>
+          )}
+        </div>
         <span className="version">v1.0.0</span>
       </header>
 
@@ -553,8 +567,16 @@ const App: React.FC = () => {
               </div>
             </div>
             <button className="btn-primary" onClick={handleNewMacro}>
-              + New Macro
+              New Macro
             </button>
+            <div className="sidebar-actions">
+              <button className="btn-secondary" onClick={handleImportMacros}>
+                Import
+              </button>
+              <button className="btn-secondary" onClick={handleExportMacros}>
+                Export
+              </button>
+            </div>
           </div>
 
           <div className="macro-list">
@@ -718,20 +740,39 @@ const App: React.FC = () => {
                 <label>Commands</label>
                 {selectedMacro.commands.map((command, index) => (
                   <div key={index} className="command-input">
-                    <input
-                      type="text"
-                      value={command}
-                      onChange={(e) => updateCommand(index, e.target.value, e)}
-                      onKeyDown={(e) => {
-                        // Allow Cmd+A for select all
-                        if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
-                          e.preventDefault();
-                          e.currentTarget.select();
-                        }
-                      }}
-                      placeholder="Enter command (use {{parameter}} for placeholders)"
-                      className="form-input"
-                    />
+                    <div className="command-input-wrapper">
+                      <div className="command-display">
+                        {command.split(/(\{\{[^}]+\}\})/).map((part, partIndex) => {
+                          if (part.match(/^\{\{[^}]+\}\}$/)) {
+                            const paramName = part.slice(2, -2);
+                            // Only show as block if it's a valid parameter
+                            if (selectedMacro.parameters.includes(paramName)) {
+                              return (
+                                <span key={partIndex} className="parameter-block">
+                                  {paramName}
+                                </span>
+                              );
+                            }
+                          }
+                          return part;
+                        })}
+                      </div>
+                      <input
+                        type="text"
+                        value={command}
+                        onChange={(e) => updateCommand(index, e.target.value, e)}
+                        onKeyDown={(e) => {
+                          // Allow Cmd+A for select all
+                          if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+                            e.preventDefault();
+                            e.currentTarget.select();
+                          }
+                        }}
+                        placeholder="Enter command (use {{parameter}} for placeholders)"
+                        data-command-index={index}
+                        className="command-input-hidden"
+                      />
+                    </div>
                     {selectedMacro.commands.length > 1 && (
                       <button
                         className="btn-remove"
@@ -966,141 +1007,141 @@ const App: React.FC = () => {
             </div>
           )}
         </main>
-
-        {/* Global Terminal */}
-        {showTerminal && (
-          <div className="global-terminal">
-            <div className="terminal-header">
-              <button
-                className="btn-close"
-                onClick={() => setShowTerminal(false)}
-              >
-                ×
-              </button>
-              <h3>Terminal</h3>
-            </div>
-            <div className="terminal-content" onClick={() => {
-              const input = document.querySelector('.terminal-input') as HTMLInputElement;
-              if (input) input.focus();
-            }}>
-              <div className="terminal-output">
-                {terminalOutput.map((line, index) => (
-                  <div key={index} className="terminal-line">
-                    {line}
-                  </div>
-                ))}
-              </div>
-              <div className="terminal-input-line">
-                <span className="terminal-prompt">$ </span>
-                <input
-                  type="text"
-                  value={terminalInput}
-                  onChange={(e) => setTerminalInput(e.target.value)}
-                  onKeyDown={handleTerminalInput}
-                  className="terminal-input"
-                  placeholder="Type commands here..."
-                  autoFocus
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Install Prompt */}
-        {showInstallPrompt && (
-          <div className="install-prompt-overlay">
-            <div className="install-prompt-popup">
-              <div className="popup-header">
-                <h3>Install MacroFlow Command</h3>
-              </div>
-              <div className="install-content">
-                <p>MacroFlow needs to install a system-wide command to enable terminal access to your macros.</p>
-                <p>This will allow you to run macros from any terminal using: <code>macro &lt;alias&gt; &lt;parameters&gt;</code></p>
-                <div className="install-actions">
-                  <button
-                    className="btn-primary"
-                    onClick={() => {
-                      if (window.electronAPI) {
-                        window.electronAPI.executeCommand("cd " + process.cwd() + " && ./scripts/install-alias.sh").then((result: any) => {
-                          if (!result.error) {
-                            setShowInstallPrompt(false);
-                            alert("✅ MacroFlow command installed successfully!\n\nYou can now use 'macro <alias> <parameters>' from any terminal.");
-                          } else {
-                            alert("❌ Installation failed. Please run './scripts/install-alias.sh' manually.");
-                          }
-                        });
-                      }
-                    }}
-                  >
-                    Install Now
-                  </button>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => setShowInstallPrompt(false)}
-                  >
-                    Install Later
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Keyboard Shortcuts Popup */}
-        {showKeyboardShortcuts && (
-          <div className="keyboard-shortcuts-overlay" onClick={() => setShowKeyboardShortcuts(false)}>
-            <div className="keyboard-shortcuts-popup" onClick={(e) => e.stopPropagation()}>
-              <div className="popup-header">
-                <button className="btn-close" onClick={() => setShowKeyboardShortcuts(false)}>×</button>
-                <h3>Keyboard Shortcuts</h3>
-              </div>
-              <div className="shortcuts-content">
-                <div className="shortcut-group">
-                  <h4>General</h4>
-                  <div className="shortcut-item">
-                    <span className="shortcut-key">Cmd/Ctrl + N</span>
-                    <span className="shortcut-desc">Create new macro</span>
-                  </div>
-                  <div className="shortcut-item">
-                    <span className="shortcut-key">Cmd/Ctrl + I</span>
-                    <span className="shortcut-desc">Import macros</span>
-                  </div>
-                  <div className="shortcut-item">
-                    <span className="shortcut-key">Cmd/Ctrl + E</span>
-                    <span className="shortcut-desc">Export macros</span>
-                  </div>
-                </div>
-                <div className="shortcut-group">
-                  <h4>Editing</h4>
-                  <div className="shortcut-item">
-                    <span className="shortcut-key">Cmd/Ctrl + A</span>
-                    <span className="shortcut-desc">Select all text</span>
-                  </div>
-                  <div className="shortcut-item">
-                    <span className="shortcut-key">Cmd/Ctrl + Z</span>
-                    <span className="shortcut-desc">Undo</span>
-                  </div>
-                  <div className="shortcut-item">
-                    <span className="shortcut-key">Cmd/Ctrl + Y</span>
-                    <span className="shortcut-desc">Redo</span>
-                  </div>
-                </div>
-                <div className="shortcut-group">
-                  <h4>Terminal</h4>
-                  <div className="shortcut-item">
-                    <span className="shortcut-key">↑/↓</span>
-                    <span className="shortcut-desc">Navigate command history</span>
-                  </div>
-                  <div className="shortcut-item">
-                    <span className="shortcut-key">Cmd/Ctrl + A</span>
-                    <span className="shortcut-desc">Select all in terminal</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Global Terminal */}
+      {showTerminal && (
+        <div className="global-terminal">
+          <div className="terminal-header">
+            <button
+              className="btn-close"
+              onClick={() => setShowTerminal(false)}
+            >
+              ×
+            </button>
+            <h3>Terminal</h3>
+          </div>
+          <div className="terminal-content" onClick={() => {
+            const input = document.querySelector('.terminal-input') as HTMLInputElement;
+            if (input) input.focus();
+          }}>
+            <div className="terminal-output">
+              {terminalOutput.map((line, index) => (
+                <div key={index} className="terminal-line">
+                  {line}
+                </div>
+              ))}
+            </div>
+            <div className="terminal-input-line">
+              <span className="terminal-prompt">$ </span>
+              <input
+                type="text"
+                value={terminalInput}
+                onChange={(e) => setTerminalInput(e.target.value)}
+                onKeyDown={handleTerminalInput}
+                className="terminal-input"
+                placeholder="Type commands here..."
+                autoFocus
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Install Prompt */}
+      {showInstallPrompt && (
+        <div className="install-prompt-overlay">
+          <div className="install-prompt-popup">
+            <div className="popup-header">
+              <h3>Install MacroFlow Command</h3>
+            </div>
+            <div className="install-content">
+              <p>MacroFlow needs to install a system-wide command to enable terminal access to your macros.</p>
+              <p>This will allow you to run macros from any terminal using: <code>macro &lt;alias&gt; &lt;parameters&gt;</code></p>
+              <div className="install-actions">
+                <button
+                  className="btn-primary"
+                  onClick={() => {
+                    if (window.electronAPI) {
+                      window.electronAPI.executeCommand("./scripts/install-alias.sh").then((result: any) => {
+                        if (!result.error) {
+                          setShowInstallPrompt(false);
+                          alert("✅ MacroFlow command installed successfully!\n\nYou can now use 'macro <alias> <parameters>' from any terminal.");
+                        } else {
+                          alert("❌ Installation failed. Please run './scripts/install-alias.sh' manually.");
+                        }
+                      });
+                    }
+                  }}
+                >
+                  Install Now
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setShowInstallPrompt(false)}
+                >
+                  Install Later
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Keyboard Shortcuts Popup */}
+      {showKeyboardShortcuts && (
+        <div className="keyboard-shortcuts-overlay" onClick={() => setShowKeyboardShortcuts(false)}>
+          <div className="keyboard-shortcuts-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header">
+              <button className="btn-close" onClick={() => setShowKeyboardShortcuts(false)}>×</button>
+              <h3>Keyboard Shortcuts</h3>
+            </div>
+            <div className="shortcuts-content">
+              <div className="shortcut-group">
+                <h4>General</h4>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">Cmd/Ctrl + N</span>
+                  <span className="shortcut-desc">Create new macro</span>
+                </div>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">Cmd/Ctrl + I</span>
+                  <span className="shortcut-desc">Import macros</span>
+                </div>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">Cmd/Ctrl + E</span>
+                  <span className="shortcut-desc">Export macros</span>
+                </div>
+              </div>
+              <div className="shortcut-group">
+                <h4>Editing</h4>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">Cmd/Ctrl + A</span>
+                  <span className="shortcut-desc">Select all text</span>
+                </div>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">Cmd/Ctrl + Z</span>
+                  <span className="shortcut-desc">Undo</span>
+                </div>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">Cmd/Ctrl + Y</span>
+                  <span className="shortcut-desc">Redo</span>
+                </div>
+              </div>
+              <div className="shortcut-group">
+                <h4>Terminal</h4>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">↑/↓</span>
+                  <span className="shortcut-desc">Navigate command history</span>
+                </div>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">Cmd/Ctrl + A</span>
+                  <span className="shortcut-desc">Select all in terminal</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
