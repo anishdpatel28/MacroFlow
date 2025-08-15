@@ -20,14 +20,13 @@
     "webpack": "webpack --config webpack.web.config.js",
     "webpack-dev": "webpack serve --config webpack.web.config.js --mode development --port 3000",
     "dev": "./dev.sh",
-    "dev:clean": "./scripts/uninstall-alias.sh",
+    "dev:clean": "./scripts/uninstall-alias.sh && npm run dev",
     "electron-web": "npm run webpack-dev & sleep 3 && npm run electron-dev"
   },
   "dependencies": {
     "react": "18.2.0",
     "react-native": "0.72.6",
     "react-native-macos": "0.72.6",
-    "react-native-windows": "0.72.6",
     "react-native-vector-icons": "^10.0.0",
     "react-native-fs": "^2.20.0",
     "react-native-zip-archive": "^6.1.0",
