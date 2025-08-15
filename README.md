@@ -114,10 +114,19 @@ This creates a standalone macOS application that can be distributed and run with
 
 ### Running Macros
 
-1. Select a macro from the sidebar
-2. Fill in parameter values if needed
-3. Click "Run Macro" to execute
-4. View results in the execution results section
+1. **From GUI**: 
+   - Select a macro from the sidebar
+   - Fill in parameter values if needed
+   - Click "Run Macro" to execute
+   - View results in the embedded terminal
+
+2. **From Embedded Terminal**: 
+   - Type `macro <alias> <parameters>` in the terminal
+   - Example: `macro test /path/to/file.js`
+
+3. **From System Terminal**: 
+   - Install aliases: `./scripts/install-alias.sh`
+   - Use: `macro <alias> <parameters>`
 
 ### Parameter Substitution
 
