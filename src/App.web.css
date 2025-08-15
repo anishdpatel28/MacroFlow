@@ -74,9 +74,31 @@ body {
 .sidebar-header {
   padding: 1.5rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.header-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 1rem;
+}
+
+.btn-keyboard-shortcuts {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-keyboard-shortcuts:hover {
+  background: rgba(102, 126, 234, 0.2);
 }
 
 .sidebar-header h3 {
@@ -592,8 +614,8 @@ body {
 
 .terminal-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   padding: 1rem;
   border-bottom: 1px solid #e5e7eb;
   background: #f8fafc;
@@ -694,6 +716,74 @@ body {
   border-radius: 3px;
   font-weight: 500;
   border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+/* Keyboard shortcuts popup */
+.keyboard-shortcuts-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.keyboard-shortcuts-popup {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.shortcuts-content {
+  padding: 1.5rem;
+}
+
+.shortcut-group {
+  margin-bottom: 1.5rem;
+}
+
+.shortcut-group h4 {
+  color: #1e293b;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.shortcut-item:last-child {
+  border-bottom: none;
+}
+
+.shortcut-key {
+  background: #f1f5f9;
+  color: #374151;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.shortcut-desc {
+  color: #64748b;
+  font-size: 0.875rem;
 }
 
 /* Copy button styles */
