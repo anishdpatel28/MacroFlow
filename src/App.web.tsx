@@ -100,6 +100,20 @@ const App: React.FC = () => {
   }, []);
 
   const handleNewMacro = () => {
+    // Check if there are unsaved changes
+    if (selectedMacro && (isCreating || isEditing)) {
+      const hasChanges = (
+        selectedMacro.name.trim() !== "" ||
+        selectedMacro.description.trim() !== "" ||
+        selectedMacro.commands.some(cmd => cmd.trim() !== "") ||
+        selectedMacro.parameters.some(param => param.trim() !== "")
+      );
+
+      if (hasChanges && !confirm("You have unsaved changes. Do you want to discard them and create a new macro?")) {
+        return;
+      }
+    }
+
     const newMacro: Macro = {
       id: Date.now().toString(),
       name: "",
@@ -219,7 +233,7 @@ const App: React.FC = () => {
         const output: string[] = [];
         results.forEach((result: any, index: number) => {
           if (result.error) {
-            output.push(`❌ Error: ${result.error}`);
+            output.push(result.error);
           } else {
             if (result.stdout) {
               output.push(result.stdout);
@@ -488,13 +502,30 @@ const App: React.FC = () => {
                 className={`macro-item ${selectedMacro?.id === macro.id ? "selected" : ""}`}
                 onClick={() => {
                   if (isCreating) {
-                    if (confirm("You have unsaved changes. Do you want to discard them and view this macro?")) {
+                    // Check if there are actual changes (not just default values)
+                    const hasChanges = selectedMacro && (
+                      selectedMacro.name.trim() !== "" ||
+                      selectedMacro.description.trim() !== "" ||
+                      selectedMacro.commands.some(cmd => cmd.trim() !== "") ||
+                      selectedMacro.parameters.some(param => param.trim() !== "")
+                    );
+
+                    if (hasChanges && confirm("You have unsaved changes. Do you want to discard them and view this macro?")) {
+                      setSelectedMacro(macro);
+                      setIsCreating(false);
+                      setIsEditing(false);
+                    } else if (!hasChanges) {
                       setSelectedMacro(macro);
                       setIsCreating(false);
                       setIsEditing(false);
                     }
                   } else {
-                    setSelectedMacro(macro);
+                    // Toggle selection - unclick if already selected
+                    if (selectedMacro?.id === macro.id) {
+                      setSelectedMacro(null);
+                    } else {
+                      setSelectedMacro(macro);
+                    }
                   }
                 }}
               >
@@ -722,7 +753,7 @@ const App: React.FC = () => {
                     </svg>
                     Back
                   </button>
-                  <h2>{selectedMacro.name}</h2>
+                  <h2 className="macro-title">{selectedMacro.name}</h2>
                 </div>
                 <div className="macro-actions">
                   <button
@@ -826,7 +857,7 @@ const App: React.FC = () => {
                 <div
                   className="parameter-popup"
                   style={{
-                    position: 'absolute',
+                    position: 'fixed',
                     left: parameterPopup.x,
                     top: parameterPopup.y,
                     zIndex: 1000
