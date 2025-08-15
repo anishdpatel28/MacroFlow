@@ -37,6 +37,16 @@ Create a macro named "testmultiple" with two commands:
 
 Choose "concurrent" mode to run both tests simultaneously, or "sequential" to run them one after another.
 
+### File Processing
+
+Create a macro for processing files:
+
+```bash
+node process.js {{inputfile}}
+gzip {{inputfile}}
+mv {{inputfile}}.gz {{outputdir}}/
+```
+
 ## Prerequisites
 
 - Node.js (v16 or later)
