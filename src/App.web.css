@@ -373,6 +373,8 @@ body {
 
 .btn-edit:hover {
   background: rgba(102, 126, 234, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .btn-delete {
@@ -390,6 +392,8 @@ body {
 .btn-delete:hover {
   background: #ef4444;
   color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .btn-delete-card {
@@ -1142,6 +1146,8 @@ body {
 
 .btn-back:hover {
   background: rgba(102, 126, 234, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .back-icon {

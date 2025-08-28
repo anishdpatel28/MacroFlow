@@ -146,6 +146,30 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle shortcuts when no input fields are focused
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        (activeElement as HTMLElement).contentEditable === 'true'
+      );
+
+      if (isInputFocused) return;
+
+      // Cmd/Ctrl + Delete - Delete macro
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Delete' && selectedMacro && !isCreating) {
+        event.preventDefault();
+        handleDeleteMacro(selectedMacro.id);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedMacro, isCreating]);
+
   const handleNewMacro = () => {
     if (selectedMacro && (isCreating || isEditing)) {
       const hasChanges = hasActualChanges();
@@ -1083,6 +1107,10 @@ const App: React.FC = () => {
                 <div className="shortcut-item">
                   <span className="shortcut-key">Cmd/Ctrl + E</span>
                   <span className="shortcut-desc">Export macros</span>
+                </div>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">Cmd/Ctrl + Delete</span>
+                  <span className="shortcut-desc">Delete macro</span>
                 </div>
               </div>
             </div>
