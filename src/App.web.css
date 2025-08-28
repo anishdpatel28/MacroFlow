@@ -1234,12 +1234,15 @@ body {
   line-height: 1.6;
 }
 
-/* Clean feature cards grid */
+/* Clean feature cards grid - 2x2 layout */
 .welcome-features {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 2rem;
   margin-bottom: 3rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Simple feature card with clean animations */
@@ -1324,6 +1327,7 @@ body {
   
   .welcome-features {
     grid-template-columns: 1fr;
+    max-width: none;
   }
 }
 

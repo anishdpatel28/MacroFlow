@@ -159,16 +159,50 @@ const App: React.FC = () => {
 
       if (isInputFocused) return;
 
-      // Cmd/Ctrl + Delete - Delete macro
-      if ((event.metaKey || event.ctrlKey) && event.key === 'Delete' && selectedMacro && !isCreating) {
+      // Cmd + Delete - Delete macro (Mac only)
+      if (event.metaKey && event.key === 'Delete' && selectedMacro && !isCreating) {
         event.preventDefault();
         handleDeleteMacro(selectedMacro.id);
+      }
+
+      // Escape - Close keyboard shortcuts popup
+      if (event.key === 'Escape' && showKeyboardShortcuts) {
+        event.preventDefault();
+        setShowKeyboardShortcuts(false);
+        return;
+      }
+
+      // Escape - Cancel editing/creating with unsaved changes check
+      if (event.key === 'Escape' && (isCreating || isEditing)) {
+        event.preventDefault();
+        const hasChanges = hasActualChanges();
+
+        if (hasChanges) {
+          if (confirm("You have unsaved changes. Do you want to discard them?")) {
+            setSelectedMacro(null);
+            setIsCreating(false);
+            setIsEditing(false);
+            setOriginalMacro(null);
+          }
+        } else {
+          setSelectedMacro(null);
+          setIsCreating(false);
+          setIsEditing(false);
+          setOriginalMacro(null);
+        }
+        return;
+      }
+
+      // Escape - Go back to home from macro info area
+      if (event.key === 'Escape' && selectedMacro && !isCreating && !isEditing) {
+        event.preventDefault();
+        setSelectedMacro(null);
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedMacro, isCreating]);
+  }, [selectedMacro, isCreating, isEditing, showKeyboardShortcuts]);
 
   const handleNewMacro = () => {
     if (selectedMacro && (isCreating || isEditing)) {
@@ -681,6 +715,11 @@ const App: React.FC = () => {
                   >
                     Cancel
                   </button>
+                  {(isCreating || hasActualChanges()) && (
+                    <button className="btn-primary" onClick={handleSaveMacro}>
+                      {isCreating ? "Create Macro" : "Save Changes"}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -796,13 +835,7 @@ const App: React.FC = () => {
                 </button>
               </div>
 
-              <div className="form-actions">
-                {(isCreating || hasActualChanges()) && (
-                  <button className="btn-primary" onClick={handleSaveMacro}>
-                    {isCreating ? "Create Macro" : "Save Changes"}
-                  </button>
-                )}
-              </div>
+
             </div>
           ) : selectedMacro ? (
             <div className="macro-details">
@@ -841,7 +874,7 @@ const App: React.FC = () => {
                       onClick={() => handleExecuteMacro(selectedMacro)}
                       disabled={isExecuting}
                     >
-                      {isExecuting ? "Running..." : "Run Macro"}
+                      Run
                     </button>
                     <button
                       className="btn-edit"
@@ -1097,20 +1130,24 @@ const App: React.FC = () => {
               <div className="shortcut-group">
                 <h4>General</h4>
                 <div className="shortcut-item">
-                  <span className="shortcut-key">Cmd/Ctrl + N</span>
+                  <span className="shortcut-key">⌘ + N</span>
                   <span className="shortcut-desc">Create new macro</span>
                 </div>
                 <div className="shortcut-item">
-                  <span className="shortcut-key">Cmd/Ctrl + I</span>
+                  <span className="shortcut-key">⌘ + I</span>
                   <span className="shortcut-desc">Import macros</span>
                 </div>
                 <div className="shortcut-item">
-                  <span className="shortcut-key">Cmd/Ctrl + E</span>
+                  <span className="shortcut-key">⌘ + E</span>
                   <span className="shortcut-desc">Export macros</span>
                 </div>
                 <div className="shortcut-item">
-                  <span className="shortcut-key">Cmd/Ctrl + Delete</span>
+                  <span className="shortcut-key">⌘ + Delete</span>
                   <span className="shortcut-desc">Delete macro</span>
+                </div>
+                <div className="shortcut-item">
+                  <span className="shortcut-key">Escape</span>
+                  <span className="shortcut-desc">Go back to home</span>
                 </div>
               </div>
             </div>
