@@ -156,6 +156,7 @@ body {
 }
 
 .macro-item {
+  position: relative;
   background: white;
   border-radius: 12px;
   padding: 1rem;
@@ -207,8 +208,9 @@ body {
 .macro-meta {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 0.75rem;
+  min-height: 24px;
 }
 
 .macro-dates {
@@ -242,6 +244,8 @@ body {
   display: flex;
   gap: 0.5rem;
   justify-content: flex-end;
+  min-height: 32px;
+  align-items: center;
 }
 
 /* Content area */
@@ -388,6 +392,53 @@ body {
   color: white;
 }
 
+.btn-delete-card {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+  opacity: 0.7;
+  z-index: 10;
+}
+
+.btn-delete-card:hover {
+  background: #ef4444;
+  color: white;
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.btn-copy-values-small {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 0.5rem;
+}
+
+.btn-copy-values-small:hover {
+  background: #667eea;
+  color: white;
+}
+
 .btn-remove {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
@@ -474,6 +525,33 @@ body {
   align-items: center;
   gap: 1rem;
   margin-bottom: 2rem;
+}
+
+.editor-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.copy-from-select {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-from-select:hover {
+  border-color: #667eea;
+}
+
+.copy-from-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .macro-editor h2 {
