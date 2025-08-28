@@ -128,7 +128,7 @@ This creates a standalone macOS application that can be distributed and run with
 1. **From GUI**:
    - Select a macro from the sidebar
    - Fill in parameter values if needed
-   - Click "Run Macro" to execute
+   - Click "Run" to execute
    - View results in the embedded terminal
 
 2. **From Embedded Terminal**:
