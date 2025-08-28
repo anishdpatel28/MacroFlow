@@ -550,19 +550,11 @@ const App: React.FC = () => {
                   title="Keyboard Shortcuts"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
-                    <line x1="6" y1="8" x2="6" y2="8" />
-                    <line x1="10" y1="8" x2="10" y2="8" />
-                    <line x1="14" y1="8" x2="14" y2="8" />
-                    <line x1="18" y1="8" x2="18" y2="8" />
-                    <line x1="6" y1="12" x2="6" y2="12" />
-                    <line x1="10" y1="12" x2="10" y2="12" />
-                    <line x1="14" y1="12" x2="14" y2="12" />
-                    <line x1="18" y1="12" x2="18" y2="12" />
-                    <line x1="6" y1="16" x2="6" y2="16" />
-                    <line x1="10" y1="16" x2="10" y2="16" />
-                    <line x1="14" y1="16" x2="14" y2="16" />
-                    <line x1="18" y1="16" x2="18" y2="16" />
+                    <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                    <path d="M7 10h2" />
+                    <path d="M11 10h2" />
+                    <path d="M15 10h2" />
+                    <path d="M7 14h10" />
                   </svg>
                 </button>
               </div>
@@ -572,18 +564,16 @@ const App: React.FC = () => {
                 New Macro
               </button>
               <div className="sidebar-actions">
-                <button className="btn-icon" onClick={handleImportMacros} title="Import Macros">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                    <polyline points="11,12 15,16 19,12"/>
-                    <line x1="15" y1="16" x2="15" y2="8"/>
-                  </svg>
-                </button>
                 <button className="btn-icon" onClick={handleExportMacros} title="Export Macros">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17,8 12,3 7,8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
+                    <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </button>
+                <button className="btn-icon" onClick={handleImportMacros} title="Import Macros">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <polyline points="9,9 12,12 15,9" />
+                    <line x1="12" y1="12" x2="12" y2="4" />
                   </svg>
                 </button>
               </div>
@@ -619,37 +609,23 @@ const App: React.FC = () => {
                   }
                 }}
               >
+                <button
+                  className="btn-delete-card"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteMacro(macro.id);
+                  }}
+                  title="Delete macro"
+                >
+                  ×
+                </button>
                 <div className="macro-info">
                   <div className="macro-header-row">
                     <h4>{macro.name}</h4>
-                    {isCreating && (
-                      <button
-                        className="btn-copy-values-text"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopyMacro(macro);
-                        }}
-                        title="Copy macro values"
-                      >
-                        Copy Values
-                      </button>
-                    )}
                   </div>
                   <p>{macro.description}</p>
                   <div className="macro-meta">
                     <span className="execution-mode">{macro.executionMode}</span>
-                    <div className="macro-dates">
-                      {macro.createdAt && (
-                        <span className="created-date">
-                          Created: {macro.createdAt.toLocaleString()}
-                        </span>
-                      )}
-                      {macro.lastRun && (
-                        <span className="last-run">
-                          Last run: {macro.lastRun.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
                   </div>
                 </div>
                 <div className="macro-actions">
@@ -697,17 +673,41 @@ const App: React.FC = () => {
             <div className="macro-editor">
               <div className="editor-header">
                 <h2>{isCreating ? "Create New Macro" : "Edit Macro"}</h2>
-                <button
-                  className="btn-secondary"
-                  onClick={() => {
-                    setSelectedMacro(null);
-                    setIsCreating(false);
-                    setIsEditing(false);
-                    setOriginalMacro(null);
-                  }}
-                >
-                  Cancel
-                </button>
+                <div className="editor-header-actions">
+                  {isCreating && macros.length > 0 && (
+                    <select
+                      className="copy-from-select"
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const macroToCopy = macros.find(m => m.id === e.target.value);
+                          if (macroToCopy) {
+                            handleCopyMacro(macroToCopy);
+                          }
+                        }
+                        e.target.value = "";
+                      }}
+                      value=""
+                    >
+                      <option value="">Copy from existing...</option>
+                      {macros.map(macro => (
+                        <option key={macro.id} value={macro.id}>
+                          {macro.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <button
+                    className="btn-secondary"
+                    onClick={() => {
+                      setSelectedMacro(null);
+                      setIsCreating(false);
+                      setIsEditing(false);
+                      setOriginalMacro(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
 
               <div className="form-group">
@@ -1151,32 +1151,6 @@ const App: React.FC = () => {
                 <div className="shortcut-item">
                   <span className="shortcut-key">Cmd/Ctrl + E</span>
                   <span className="shortcut-desc">Export macros</span>
-                </div>
-              </div>
-              <div className="shortcut-group">
-                <h4>Editing</h4>
-                <div className="shortcut-item">
-                  <span className="shortcut-key">Cmd/Ctrl + A</span>
-                  <span className="shortcut-desc">Select all text</span>
-                </div>
-                <div className="shortcut-item">
-                  <span className="shortcut-key">Cmd/Ctrl + Z</span>
-                  <span className="shortcut-desc">Undo</span>
-                </div>
-                <div className="shortcut-item">
-                  <span className="shortcut-key">Cmd/Ctrl + Y</span>
-                  <span className="shortcut-desc">Redo</span>
-                </div>
-              </div>
-              <div className="shortcut-group">
-                <h4>Terminal</h4>
-                <div className="shortcut-item">
-                  <span className="shortcut-key">↑/↓</span>
-                  <span className="shortcut-desc">Navigate command history</span>
-                </div>
-                <div className="shortcut-item">
-                  <span className="shortcut-key">Cmd/Ctrl + A</span>
-                  <span className="shortcut-desc">Select all in terminal</span>
                 </div>
               </div>
             </div>
