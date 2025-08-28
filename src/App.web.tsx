@@ -42,12 +42,23 @@ const App: React.FC = () => {
   } | null>(null);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [installSuccess, setInstallSuccess] = useState(false);
+  const [version, setVersion] = useState("1.0.0");
 
-  // Check if macro command is installed
   useEffect(() => {
     if (window.electronAPI) {
-      window.electronAPI.executeCommand("which macro").then((result: any) => {
-        if (result.error || !result.stdout.trim()) {
+      // Load version
+      window.electronAPI.getVersion().then((ver: string) => {
+        setVersion(ver);
+      }).catch(() => {
+        // Fallback to default version if electron API fails
+        setVersion("1.0.0");
+      });
+
+      // Check macro command installation
+      window.electronAPI.checkMacroCommand().then((result: any) => {
+        if (!result.installed) {
           setShowInstallPrompt(true);
         }
       }).catch(() => {
@@ -56,7 +67,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Load macros from localStorage on component mount
   useEffect(() => {
     const savedMacros = localStorage.getItem("macroflow-macros");
     if (savedMacros) {
@@ -73,18 +83,14 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Save macros to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem("macroflow-macros", JSON.stringify(macros));
 
-    // Also save to file system for CLI access (if in Electron)
     if (window.electronAPI) {
-      // This will be handled by the main process
       window.electronAPI.saveMacros(macros);
     }
   }, [macros]);
 
-  // Handle menu actions
   useEffect(() => {
     const handleMenuAction = (event: any, action: string) => {
       switch (action) {
@@ -98,7 +104,7 @@ const App: React.FC = () => {
           handleExportMacros();
           break;
         case "about":
-          alert("MacroFlow v1.0.0\nA powerful macro management tool for developers");
+          alert(`MacroFlow v${version}\nA powerful macro management tool for developers`);
           break;
       }
     };
@@ -115,7 +121,6 @@ const App: React.FC = () => {
   }, []);
 
   const handleNewMacro = () => {
-    // Check if there are unsaved changes
     if (selectedMacro && (isCreating || isEditing)) {
       const hasChanges = (
         selectedMacro.name.trim() !== "" ||
@@ -145,12 +150,12 @@ const App: React.FC = () => {
 
   const handleCopyMacro = (macro: Macro) => {
     const copiedMacro: Macro = {
-      id: Date.now().toString(), // Generate new unique ID
+      id: Date.now().toString(),
       name: `${macro.name} (Copy)`,
       description: macro.description,
-      commands: [...macro.commands], // Deep copy arrays
+      commands: [...macro.commands],
       executionMode: macro.executionMode,
-      parameters: [...macro.parameters], // Deep copy arrays
+      parameters: [...macro.parameters],
       createdAt: new Date(),
       lastRun: undefined
     };
@@ -176,7 +181,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // Check for duplicate alias
     const existingMacro = macros.find(m =>
       m.name.toLowerCase() === selectedMacro.name.toLowerCase() &&
       m.id !== selectedMacro.id
@@ -187,7 +191,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // Filter out empty parameters
     const filteredMacro = {
       ...selectedMacro,
       parameters: selectedMacro.parameters.filter(param => param.trim() !== '')
@@ -219,18 +222,12 @@ const App: React.FC = () => {
     setIsExecuting(true);
     setShowTerminal(true);
 
-    // Build the macro command
     const paramValues = macro.parameters.map(param => parameterValues[param] || `<${param}>`);
     const macroCommand = `macro ${macro.name} ${paramValues.join(' ')}`;
 
-    // Add to terminal history
     setTerminalHistory(prev => [...prev, macroCommand]);
 
-    // Execute the command in terminal (don't duplicate the command line)
-    // setTerminalOutput(prev => [...prev, `$ ${macroCommand}`]);
-
     try {
-      // Prepare parameter values
       const params: Record<string, string> = {};
       macro.parameters.forEach(param => {
         params[param] = parameterValues[param] || "";
@@ -244,10 +241,8 @@ const App: React.FC = () => {
       if (window.electronAPI) {
         const results = await window.electronAPI.executeMacro(macroToExecute);
 
-        // Display results in terminal
         const output: string[] = [];
         results.forEach((result: any, index: number) => {
-          // Show the command being executed
           output.push(result.command);
           if (result.error) {
             output.push(result.error);
@@ -260,12 +255,10 @@ const App: React.FC = () => {
 
         setTerminalOutput(prev => [...prev, ...output]);
 
-        // Update last run time
         setMacros(prev => prev.map(m =>
           m.id === macro.id ? { ...m, lastRun: new Date() } : m
         ));
 
-        // Scroll to bottom after macro execution
         setTimeout(() => {
           const terminalOutput = document.querySelector('.terminal-output');
           if (terminalOutput) {
@@ -277,7 +270,6 @@ const App: React.FC = () => {
           }
         }, 0);
       } else {
-        // Fallback for web version - simulate execution
         setTimeout(() => {
           setTerminalOutput(prev => [...prev, `✅ Macro executed successfully (web version)`]);
         }, 1000);
@@ -294,35 +286,29 @@ const App: React.FC = () => {
     if (e.key === 'Enter') {
       const command = terminalInput.trim();
 
-      // Always add to output, even if empty
       setTerminalOutput(prev => [...prev, `$ ${command || ''}`]);
 
       if (command) {
         setTerminalHistory(prev => [...prev, command]);
         setTerminalHistoryIndex(-1);
 
-        // Handle macro commands
         if (command.startsWith('macro ')) {
           const parts = command.split(' ');
           const macroName = parts[1];
           const macro = macros.find(m => m.name === macroName);
           if (macro) {
-            // Execute the macro
             handleExecuteMacro(macro);
           } else {
             setTerminalOutput(prev => [...prev, `Command failed: ${macroName}`]);
           }
         } else {
-          // Regular command - execute via Electron
           if (window.electronAPI) {
-            // Execute real command via Electron
             window.electronAPI.executeCommand(command).then((result: any) => {
               if (result.error) {
                 setTerminalOutput(prev => [...prev, result.error]);
               } else {
                 setTerminalOutput(prev => [...prev, result.stdout || '']);
               }
-              // Scroll to bottom after output
               setTimeout(() => {
                 const terminalOutput = document.querySelector('.terminal-output');
                 if (terminalOutput) {
@@ -333,20 +319,17 @@ const App: React.FC = () => {
               setTerminalOutput(prev => [...prev, `Command failed: ${command}`]);
             });
           } else {
-            // Fallback for web version
             setTerminalOutput(prev => [...prev, `✅ Command executed: ${command}`]);
           }
         }
       }
 
       setTerminalInput("");
-      // Scroll to bottom after command
       setTimeout(() => {
         const terminalOutput = document.querySelector('.terminal-output');
         if (terminalOutput) {
           terminalOutput.scrollTop = terminalOutput.scrollHeight;
         }
-        // Also scroll the terminal content
         const terminalContent = document.querySelector('.terminal-content');
         if (terminalContent) {
           terminalContent.scrollTop = terminalContent.scrollHeight;
@@ -434,18 +417,16 @@ const App: React.FC = () => {
         commands: prev.commands.map((cmd, i) => i === index ? value : cmd)
       } : null);
 
-      // Check for parameter popup trigger
       if (event) {
         const input = event.target;
         const cursorPosition = input.selectionStart || 0;
         const textBeforeCursor = value.substring(0, cursorPosition);
 
-        // Check if we're typing {{ and need to show popup
         const match = textBeforeCursor.match(/\{\{([^}]*)$/);
         if (match) {
           const filter = match[1];
           const rect = input.getBoundingClientRect();
-          const charWidth = 8; // Approximate character width
+          const charWidth = 8;
           const popupX = rect.left + Math.min(cursorPosition * charWidth, rect.width - 200);
           setParameterPopup({
             show: true,
@@ -477,12 +458,11 @@ const App: React.FC = () => {
 
       setParameterPopup(null);
 
-      // Focus back on the input and set cursor position after the parameter
       setTimeout(() => {
         const input = document.querySelector(`input[data-command-index="${commandIndex}"]`) as HTMLInputElement;
         if (input) {
           input.focus();
-          const newPosition = beforeCursor.length + parameter.length + 4; // +4 for {{}}
+          const newPosition = beforeCursor.length + parameter.length + 4;
           input.setSelectionRange(newPosition, newPosition);
         }
       }, 0);
@@ -517,30 +497,18 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="app">
+    <div className={`app ${showTerminal ? 'app-with-terminal' : ''}`}>
       <header className="header">
         <div className="header-left">
           <h1>MacroFlow</h1>
-          {showInstallPrompt && (
-            <button
-              className="btn-install-command"
-              onClick={() => setShowInstallPrompt(true)}
-              title="Install MacroFlow Command"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
-              Install Command
-            </button>
-          )}
         </div>
-        <span className="version">v1.0.0</span>
+        <span className="version">v{version}</span>
       </header>
 
       <div className="container">
         <nav className="sidebar">
           <div className="sidebar-header">
-            <div className="header-top">
+            <div className="sidebar-top-row">
               <h3>Macros</h3>
               <div className="header-actions">
                 <button
@@ -566,16 +534,26 @@ const App: React.FC = () => {
                 </button>
               </div>
             </div>
-            <button className="btn-primary" onClick={handleNewMacro}>
-              New Macro
-            </button>
-            <div className="sidebar-actions">
-              <button className="btn-secondary" onClick={handleImportMacros}>
-                Import
+            <div className="sidebar-bottom-row">
+              <button className="btn-primary" onClick={handleNewMacro}>
+                New Macro
               </button>
-              <button className="btn-secondary" onClick={handleExportMacros}>
-                Export
-              </button>
+              <div className="sidebar-actions">
+                <button className="btn-icon" onClick={handleImportMacros} title="Import Macros">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7,10 12,15 17,10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </button>
+                <button className="btn-icon" onClick={handleExportMacros} title="Export Macros">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17,8 12,3 7,8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -586,7 +564,6 @@ const App: React.FC = () => {
                 className={`macro-item ${selectedMacro?.id === macro.id ? "selected" : ""}`}
                 onClick={() => {
                   if (isCreating) {
-                    // Check if there are actual changes (not just default values)
                     const hasChanges = selectedMacro && (
                       selectedMacro.name.trim() !== "" ||
                       selectedMacro.description.trim() !== "" ||
@@ -604,7 +581,6 @@ const App: React.FC = () => {
                       setIsEditing(false);
                     }
                   } else {
-                    // Toggle selection - unclick if already selected
                     if (selectedMacro?.id === macro.id) {
                       setSelectedMacro(null);
                     } else {
@@ -691,6 +667,16 @@ const App: React.FC = () => {
             <div className="macro-editor">
               <div className="editor-header">
                 <h2>{isCreating ? "Create New Macro" : "Edit Macro"}</h2>
+                <button
+                  className="btn-secondary"
+                  onClick={() => {
+                    setSelectedMacro(null);
+                    setIsCreating(false);
+                    setIsEditing(false);
+                  }}
+                >
+                  Cancel
+                </button>
               </div>
 
               <div className="form-group">
@@ -742,10 +728,9 @@ const App: React.FC = () => {
                   <div key={index} className="command-input">
                     <div className="command-input-wrapper">
                       <div className="command-display">
-                        {command.split(/(\{\{[^}]+\}\})/).map((part, partIndex) => {
+                        {command ? command.split(/(\{\{[^}]+\}\})/).map((part, partIndex) => {
                           if (part.match(/^\{\{[^}]+\}\}$/)) {
                             const paramName = part.slice(2, -2);
-                            // Only show as block if it's a valid parameter
                             if (selectedMacro.parameters.includes(paramName)) {
                               return (
                                 <span key={partIndex} className="parameter-block">
@@ -755,14 +740,13 @@ const App: React.FC = () => {
                             }
                           }
                           return part;
-                        })}
+                        }) : <span className="placeholder-text">Enter command (use {`{{parameter}}`} for placeholders)</span>}
                       </div>
                       <input
                         type="text"
                         value={command}
                         onChange={(e) => updateCommand(index, e.target.value, e)}
                         onKeyDown={(e) => {
-                          // Allow Cmd+A for select all
                           if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
                             e.preventDefault();
                             e.currentTarget.select();
@@ -820,16 +804,6 @@ const App: React.FC = () => {
               <div className="form-actions">
                 <button className="btn-primary" onClick={handleSaveMacro}>
                   {isCreating ? "Create Macro" : "Save Changes"}
-                </button>
-                <button
-                  className="btn-secondary"
-                  onClick={() => {
-                    setSelectedMacro(null);
-                    setIsCreating(false);
-                    setIsEditing(false);
-                  }}
-                >
-                  Cancel
                 </button>
               </div>
             </div>
@@ -1002,7 +976,7 @@ const App: React.FC = () => {
                 </div>
               </div>
               <button className="btn-primary" onClick={handleNewMacro}>
-                Create Your First Macro
+                New Macro
               </button>
             </div>
           )}
@@ -1056,33 +1030,66 @@ const App: React.FC = () => {
               <h3>Install MacroFlow Command</h3>
             </div>
             <div className="install-content">
-              <p>MacroFlow needs to install a system-wide command to enable terminal access to your macros.</p>
-              <p>This will allow you to run macros from any terminal using: <code>macro &lt;alias&gt; &lt;parameters&gt;</code></p>
-              <div className="install-actions">
-                <button
-                  className="btn-primary"
-                  onClick={() => {
-                    if (window.electronAPI) {
-                      window.electronAPI.executeCommand("./scripts/install-alias.sh").then((result: any) => {
-                        if (!result.error) {
-                          setShowInstallPrompt(false);
-                          alert("✅ MacroFlow command installed successfully!\n\nYou can now use 'macro <alias> <parameters>' from any terminal.");
-                        } else {
-                          alert("❌ Installation failed. Please run './scripts/install-alias.sh' manually.");
+              {!installSuccess ? (
+                <>
+                  <p>MacroFlow needs to install a system-wide command to enable terminal access to your macros.</p>
+                  <p>This will allow you to run macros from any terminal using: <code>macro &lt;alias&gt; &lt;parameters&gt;</code></p>
+                  <p>This installation is required for MacroFlow to function properly.</p>
+                  {isInstalling && (
+                    <div className="install-progress">
+                      <div className="progress-bar">
+                        <div className="progress-bar-fill"></div>
+                      </div>
+                      <p>Installing MacroFlow command...</p>
+                    </div>
+                  )}
+                  <div className="install-actions">
+                    <button
+                      className="btn-primary"
+                      onClick={async () => {
+                        if (window.electronAPI) {
+                          setIsInstalling(true);
+                          try {
+                            const result = await window.electronAPI.installMacroflowCommand();
+
+                            setIsInstalling(false);
+
+                            if (result.success) {
+                              setInstallSuccess(true);
+                            } else {
+                              alert("❌ Installation failed. Please try again or run the installation manually.");
+                            }
+                          } catch (error) {
+                            setIsInstalling(false);
+                            alert("❌ Installation failed. Please try again or run the installation manually.");
+                          }
                         }
-                      });
-                    }
-                  }}
-                >
-                  Install Now
-                </button>
-                <button
-                  className="btn-secondary"
-                  onClick={() => setShowInstallPrompt(false)}
-                >
-                  Install Later
-                </button>
-              </div>
+                      }}
+                      disabled={isInstalling}
+                    >
+                      {isInstalling ? "Installing..." : "Install"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="install-success">
+                    <h4>MacroFlow Command Installed Successfully!</h4>
+                    <p>You can now use <code>macro &lt;alias&gt; &lt;parameters&gt;</code> from any terminal.</p>
+                  </div>
+                  <div className="install-actions">
+                    <button
+                      className="btn-primary"
+                      onClick={() => {
+                        setShowInstallPrompt(false);
+                        setInstallSuccess(false);
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

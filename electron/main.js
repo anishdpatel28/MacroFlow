@@ -4,16 +4,22 @@ const fs = require("fs");
 const { exec } = require("child_process");
 const isDev = process.env.NODE_ENV === "development";
 
-// Handle command line arguments
+// Read package.json for version
+const packageJsonPath = path.join(__dirname, '../package.json');
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+const VERSION = packageJson.version;
+
 const args = process.argv.slice(2);
 const command = args[0];
 const macroName = args[1];
 const macroParams = args.slice(2);
 
+// CLI mode flag
+const isCliMode = command === "run-macro" || command === "--v" || command === "--version" || command === "--help";
+
 let mainWindow;
 
 function createWindow() {
-  // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -23,7 +29,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      webSecurity: true,
+      webSecurity: isDev ? false : true,
       allowRunningInsecureContent: false,
       preload: path.join(__dirname, "preload.js"),
     },
@@ -32,7 +38,6 @@ function createWindow() {
     show: false,
   });
 
-  // Set Content Security Policy
   mainWindow.webContents.session.webRequest.onHeadersReceived(
     (details, callback) => {
       callback({
@@ -46,28 +51,29 @@ function createWindow() {
     }
   );
 
-  // Load the app
   if (isDev) {
-    // In development, load from webpack dev server
     mainWindow.loadURL("http://localhost:3000");
     mainWindow.webContents.openDevTools();
+    
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+      console.log('Failed to load development server:', errorDescription);
+      setTimeout(() => {
+        mainWindow.loadURL("http://localhost:3000");
+      }, 2000);
+    });
   } else {
-    // In production, load the built React app
     mainWindow.loadFile(path.join(__dirname, "../build/index.html"));
   }
 
-  // Show window when ready
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
   });
 
-  // Handle window closed
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
 }
 
-// Create menu
 function createMenu() {
   const template = [
     {
@@ -156,13 +162,11 @@ function createMenu() {
   Menu.setApplicationMenu(menu);
 }
 
-// IPC handlers for macro operations
 ipcMain.handle("execute-macro", async (event, macro) => {
   return new Promise((resolve, reject) => {
     const { commands, executionMode, parameters } = macro;
     
     if (executionMode === "concurrent") {
-      // Execute all commands concurrently
       const promises = commands.map((command, index) => {
         return new Promise((cmdResolve, cmdReject) => {
           const processedCommand = processCommandWithParameters(command, parameters);
@@ -182,7 +186,6 @@ ipcMain.handle("execute-macro", async (event, macro) => {
         })
         .catch(reject);
     } else {
-      // Execute commands sequentially
       let currentIndex = 0;
       const results = [];
       
@@ -212,7 +215,6 @@ ipcMain.handle("execute-macro", async (event, macro) => {
   });
 });
 
-// Save macros to file system
 ipcMain.handle("save-macros", async (event, macros) => {
   try {
     const userDataPath = app.getPath('userData');
@@ -225,7 +227,6 @@ ipcMain.handle("save-macros", async (event, macros) => {
   }
 });
 
-// Execute single command from renderer
 ipcMain.handle("execute-command", async (event, command) => {
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
@@ -238,10 +239,81 @@ ipcMain.handle("execute-command", async (event, command) => {
   });
 });
 
+ipcMain.handle("check-macro-command", async (event) => {
+  return new Promise((resolve, reject) => {
+    exec("which macro", (error, stdout, stderr) => {
+      if (error || !stdout.trim()) {
+        resolve({ installed: false });
+      } else {
+        resolve({ installed: true, path: stdout.trim() });
+      }
+    });
+  });
+});
+
+ipcMain.handle("get-version", async (event) => {
+  return VERSION;
+});
+
+ipcMain.handle("install-macroflow-command", async (event) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      let appPath;
+      if (isDev) {
+        appPath = path.join(process.cwd(), 'node_modules', '.bin', 'electron');
+        const mainJsPath = path.join(process.cwd(), 'electron', 'main.js');
+        appPath = `"${appPath}" "${mainJsPath}"`;
+      } else {
+        appPath = app.getPath('exe');
+      }
+      
+      const globalScript = "/usr/local/bin/macro";
+      const scriptContent = `#!/bin/bash
+# MacroFlow Global Command
+# Usage: macro <macro-name> [parameters...]
+
+# Get the MacroFlow app path
+MACROFLOW_APP="${appPath}"
+
+if [ $# -eq 0 ]; then
+    echo "Usage: macro <macro-name> [parameters...]"
+    exit 1
+fi
+
+MACRO_NAME="$1"
+shift
+PARAMS="$@"
+
+# Execute the macro through MacroFlow
+${isDev ? 'cd "' + process.cwd() + '" && ' : ''}"$MACROFLOW_APP" run-macro "$MACRO_NAME" $PARAMS
+`;
+
+      const tempScript = path.join(app.getPath('temp'), 'macroflow-install.sh');
+      fs.writeFileSync(tempScript, scriptContent);
+      
+      const osascriptCommand = `osascript -e 'do shell script "cp ${tempScript} ${globalScript} && chmod +x ${globalScript}" with administrator privileges'`;
+      
+      exec(osascriptCommand, (error, stdout, stderr) => {
+        try {
+          fs.unlinkSync(tempScript);
+        } catch (e) {
+        }
+        
+        if (error) {
+          resolve({ error: error.message, stderr });
+        } else {
+          resolve({ success: true, stdout });
+        }
+      });
+    } catch (error) {
+      resolve({ error: error.message });
+    }
+  });
+});
+
 function processCommandWithParameters(command, parameters) {
   let processedCommand = command;
   
-  // Replace parameter placeholders with actual values
   if (parameters) {
     Object.keys(parameters).forEach(key => {
       const placeholder = `{{${key}}}`;
@@ -252,10 +324,31 @@ function processCommandWithParameters(command, parameters) {
   return processedCommand;
 }
 
-// Function to run macro from command line
+function showVersion() {
+  console.log(`MacroFlow v${VERSION}`);
+  app.quit();
+}
+
+function showHelp() {
+  console.log(`MacroFlow v${VERSION}`);
+  console.log('A powerful macro management tool for developers');
+  console.log('');
+  console.log('Usage:');
+  console.log('  macro <macro-name> [parameters...]    Run a macro');
+  console.log('  macro --v, --version                  Show version');
+  console.log('  macro --help                          Show this help');
+  console.log('');
+  console.log('Examples:');
+  console.log('  macro test                            Run macro named "test"');
+  console.log('  macro deploy staging                  Run macro named "deploy" with parameter "staging"');
+  console.log('  macro build /path/to/project          Run macro named "build" with path parameter');
+  console.log('');
+  console.log('For more information, visit: https://github.com/yourusername/macroflow');
+  app.quit();
+}
+
 async function runMacroFromCLI(macroName, params) {
   try {
-    // Load macros from localStorage equivalent
     const userDataPath = app.getPath('userData');
     const macrosPath = path.join(userDataPath, 'macroflow-macros.json');
     
@@ -265,17 +358,15 @@ async function runMacroFromCLI(macroName, params) {
       macros = JSON.parse(data);
     }
     
-    // Find the macro by name
     const macro = macros.find(m => m.name === macroName);
     if (!macro) {
-      console.error(`❌ Macro "${macroName}" not found`);
+      console.error(`Macro "${macroName}" not found`);
       console.log("Available macros:");
       macros.forEach(m => console.log(`  - ${m.name}`));
       app.quit();
       return;
     }
     
-    // Prepare parameters
     const parameters = {};
     if (macro.parameters && macro.parameters.length > 0) {
       macro.parameters.forEach((param, index) => {
@@ -287,10 +378,8 @@ async function runMacroFromCLI(macroName, params) {
     console.log(`📋 Commands: ${macro.commands.length}`);
     console.log(`⚡ Mode: ${macro.executionMode}`);
     
-    // Execute the macro
     const results = await executeMacro(macro, parameters);
     
-    // Display results
     console.log("\n📊 Execution Results:");
     results.forEach((result, index) => {
       console.log(`\n${index + 1}. ${result.command}`);
@@ -304,7 +393,6 @@ async function runMacroFromCLI(macroName, params) {
       }
     });
     
-    // Update last run time
     macro.lastRun = new Date().toISOString();
     fs.writeFileSync(macrosPath, JSON.stringify(macros, null, 2));
     
@@ -317,13 +405,11 @@ async function runMacroFromCLI(macroName, params) {
   }
 }
 
-// Function to execute macro (extracted from IPC handler)
 async function executeMacro(macro, parameters) {
   return new Promise((resolve, reject) => {
     const { commands, executionMode } = macro;
     
     if (executionMode === "concurrent") {
-      // Execute all commands concurrently
       const promises = commands.map((command, index) => {
         return new Promise((cmdResolve, cmdReject) => {
           const processedCommand = processCommandWithParameters(command, parameters);
@@ -345,7 +431,6 @@ async function executeMacro(macro, parameters) {
         })
         .catch(reject);
     } else {
-      // Execute commands sequentially
       let currentIndex = 0;
       const results = [];
       
@@ -375,12 +460,21 @@ async function executeMacro(macro, parameters) {
   });
 }
 
-// App event handlers
 app.whenReady().then(() => {
-  // Check if running in CLI mode
-  if (command === "run-macro" && macroName) {
-    runMacroFromCLI(macroName, macroParams);
+  if (isCliMode) {
+    // CLI mode - no GUI needed
+    if (command === "--v" || command === "--version") {
+      showVersion();
+    } else if (command === "--help") {
+      showHelp();
+    } else if (command === "run-macro" && macroName) {
+      runMacroFromCLI(macroName, macroParams);
+    } else {
+      console.log('Invalid command. Use --help for usage information.');
+      app.quit();
+    }
   } else {
+    // GUI mode
     createWindow();
     createMenu();
 
@@ -393,12 +487,41 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
+  if (process.platform !== "darwin" || isCliMode) {
     app.quit();
   }
 });
 
-// Handle security warnings
+// Skip single instance lock for CLI mode to allow concurrent macro executions
+if (!isCliMode) {
+  const gotTheLock = app.requestSingleInstanceLock();
+
+  if (!gotTheLock) {
+    app.quit();
+  } else {
+    app.on('second-instance', (event, commandLine, workingDirectory) => {
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+      }
+    });
+  }
+}
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  if (!isDev) {
+    app.quit();
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  if (!isDev) {
+    app.quit();
+  }
+});
+
 app.on("web-contents-created", (event, contents) => {
   contents.on("new-window", (newEvent, navigationUrl) => {
     newEvent.preventDefault();

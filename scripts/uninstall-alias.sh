@@ -7,12 +7,17 @@ set -e
 
 echo "🧹 Uninstalling MacroFlow terminal aliases..."
 
-# Function to remove alias from shell config
+if [ -f "/usr/local/bin/macro" ]; then
+    sudo rm -f "/usr/local/bin/macro"
+    echo "✅ Removed global macro command"
+else
+    echo "⚠️  Global macro command not found"
+fi
+
 remove_alias_from_shell() {
     local shell_config="$1"
     
     if [ -f "$shell_config" ]; then
-        # Remove alias line if it exists
         if grep -q "alias macro=" "$shell_config"; then
             sed -i '' '/alias macro=/d' "$shell_config"
             echo "✅ Removed alias from $shell_config"
@@ -22,24 +27,13 @@ remove_alias_from_shell() {
     fi
 }
 
-# Remove from different shell configurations
 echo "📝 Removing macro alias from shell configurations..."
 
-# Bash
-if [ -f "$HOME/.bashrc" ]; then
-    remove_alias_from_shell "$HOME/.bashrc"
-fi
+remove_alias_from_shell "$HOME/.bashrc"
+remove_alias_from_shell "$HOME/.bash_profile"
 
-if [ -f "$HOME/.bash_profile" ]; then
-    remove_alias_from_shell "$HOME/.bash_profile"
-fi
+remove_alias_from_shell "$HOME/.zshrc"
 
-# Zsh
-if [ -f "$HOME/.zshrc" ]; then
-    remove_alias_from_shell "$HOME/.zshrc"
-fi
-
-# Fish
 if [ -f "$HOME/.config/fish/config.fish" ]; then
     if grep -q "alias macro=" "$HOME/.config/fish/config.fish"; then
         sed -i '' '/alias macro=/d' "$HOME/.config/fish/config.fish"
@@ -49,20 +43,8 @@ if [ -f "$HOME/.config/fish/config.fish" ]; then
     fi
 fi
 
-# Remove global macro command
-GLOBAL_SCRIPT="/usr/local/bin/macro"
-if [ -f "$GLOBAL_SCRIPT" ]; then
-    sudo rm "$GLOBAL_SCRIPT"
-    echo "✅ Removed global macro command"
-else
-    echo "⚠️  Global macro command not found"
-fi
-
 echo ""
 echo "🎉 MacroFlow aliases uninstalled successfully!"
 echo ""
 echo "🔄 To apply changes in current terminal:"
 echo "  source ~/.zshrc  # or ~/.bashrc"
-echo ""
-echo "📝 You can reinstall the aliases anytime by running:"
-echo "  ./scripts/install-alias.sh"

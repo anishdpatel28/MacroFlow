@@ -7,32 +7,40 @@ set -e
 
 echo "🔧 Installing MacroFlow terminal aliases..."
 
-# Get the directory where MacroFlow is installed
+if [ ! -f "package.json" ] || [ ! -d "electron" ]; then
+    echo "❌ Please run this script from the MacroFlow project root directory"
+    exit 1
+fi
+
 MACROFLOW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Try to find the MacroFlow app (prefer arm64 on Apple Silicon)
 if [[ $(uname -m) == "arm64" ]] && [ -f "$MACROFLOW_DIR/dist/mac-arm64/MacroFlow.app/Contents/MacOS/MacroFlow" ]; then
     MACROFLOW_APP="$MACROFLOW_DIR/dist/mac-arm64/MacroFlow.app/Contents/MacOS/MacroFlow"
 elif [ -f "$MACROFLOW_DIR/dist/mac/MacroFlow.app/Contents/MacOS/MacroFlow" ]; then
     MACROFLOW_APP="$MACROFLOW_DIR/dist/mac/MacroFlow.app/Contents/MacOS/MacroFlow"
-else
+elif [ -f "$MACROFLOW_DIR/dist/macos/MacroFlow.app/Contents/MacOS/MacroFlow" ]; then
     MACROFLOW_APP="$MACROFLOW_DIR/dist/macos/MacroFlow.app/Contents/MacOS/MacroFlow"
+elif [ -f "$MACROFLOW_DIR/node_modules/.bin/electron" ]; then
+    MACROFLOW_APP="$MACROFLOW_DIR/node_modules/.bin/electron $MACROFLOW_DIR/electron/main.js"
+else
+    echo "❌ MacroFlow app not found. Please build the application first."
+    echo "Available build commands:"
+    echo "  npm run build:macos"
+    echo "  npm run build:mac-arm64"
+    exit 1
 fi
 
-# Check if MacroFlow app exists
 if [ ! -f "$MACROFLOW_APP" ]; then
     echo "❌ MacroFlow app not found at $MACROFLOW_APP"
     echo "Please build MacroFlow first: npm run build:macos"
     exit 1
 fi
 
-# Function to add alias to shell config
 add_alias_to_shell() {
     local shell_config="$1"
     local alias_line="$2"
     
     if [ -f "$shell_config" ]; then
-        # Check if alias already exists
         if ! grep -q "alias macro=" "$shell_config"; then
             echo "$alias_line" >> "$shell_config"
             echo "✅ Added alias to $shell_config"
@@ -42,13 +50,10 @@ add_alias_to_shell() {
     fi
 }
 
-# Create the alias command
 ALIAS_CMD="alias macro='$MACROFLOW_APP run-macro'"
 
-# Add to different shell configurations
 echo "📝 Adding macro alias to shell configurations..."
 
-# Bash
 if [ -f "$HOME/.bashrc" ]; then
     add_alias_to_shell "$HOME/.bashrc" "$ALIAS_CMD"
 fi
@@ -57,12 +62,10 @@ if [ -f "$HOME/.bash_profile" ]; then
     add_alias_to_shell "$HOME/.bash_profile" "$ALIAS_CMD"
 fi
 
-# Zsh
 if [ -f "$HOME/.zshrc" ]; then
     add_alias_to_shell "$HOME/.zshrc" "$ALIAS_CMD"
 fi
 
-# Fish
 if [ -f "$HOME/.config/fish/config.fish" ]; then
     if ! grep -q "alias macro=" "$HOME/.config/fish/config.fish"; then
         echo "alias macro '$MACROFLOW_APP run-macro'" >> "$HOME/.config/fish/config.fish"
@@ -72,7 +75,6 @@ if [ -f "$HOME/.config/fish/config.fish" ]; then
     fi
 fi
 
-# Create a global alias script
 GLOBAL_SCRIPT="/usr/local/bin/macro"
 echo "🔗 Creating global macro command..."
 
@@ -81,29 +83,77 @@ sudo tee "$GLOBAL_SCRIPT" > /dev/null << EOF
 # MacroFlow Global Command
 # Usage: macro <macro-name> [parameters...]
 
-MACROFLOW_APP="$MACROFLOW_APP"
+MACROFLOW_DIR="$MACROFLOW_DIR"
+
+if [ -f "\$MACROFLOW_DIR/node_modules/.bin/electron" ]; then
+    case "\$1" in
+        --v|--version)
+            cd "\$MACROFLOW_DIR" && NODE_ENV=development "\$MACROFLOW_DIR/node_modules/.bin/electron" "\$MACROFLOW_DIR/electron/main.js" "\$1"
+            exit \$?
+            ;;
+        --help)
+            cd "\$MACROFLOW_DIR" && NODE_ENV=development "\$MACROFLOW_DIR/node_modules/.bin/electron" "\$MACROFLOW_DIR/electron/main.js" "\$1"
+            exit \$?
+            ;;
+        "")
+            echo "Usage: macro <macro-name> [parameters...]"
+            echo "       macro --v, --version   Show version"
+            echo "       macro --help           Show help"
+            echo ""
+            echo "Examples:"
+            echo "  macro test               Run macro named 'test'"
+            echo "  macro deploy staging     Run macro with parameters"
+            exit 1
+            ;;
+        *)
+            cd "\$MACROFLOW_DIR" && NODE_ENV=development "\$MACROFLOW_DIR/node_modules/.bin/electron" "\$MACROFLOW_DIR/electron/main.js" run-macro "\$@"
+            exit \$?
+            ;;
+    esac
+elif [[ \$(uname -m) == "arm64" ]] && [ -f "\$MACROFLOW_DIR/dist/mac-arm64/MacroFlow.app/Contents/MacOS/MacroFlow" ]; then
+    MACROFLOW_APP="\$MACROFLOW_DIR/dist/mac-arm64/MacroFlow.app/Contents/MacOS/MacroFlow"
+elif [ -f "\$MACROFLOW_DIR/dist/mac/MacroFlow.app/Contents/MacOS/MacroFlow" ]; then
+    MACROFLOW_APP="\$MACROFLOW_DIR/dist/mac/MacroFlow.app/Contents/MacOS/MacroFlow"
+elif [ -f "\$MACROFLOW_DIR/dist/macos/MacroFlow.app/Contents/MacOS/MacroFlow" ]; then
+    MACROFLOW_APP="\$MACROFLOW_DIR/dist/macos/MacroFlow.app/Contents/MacOS/MacroFlow"
+else
+    echo "❌ MacroFlow not found. Please install MacroFlow first."
+    exit 1
+fi
 
 if [ ! -f "\$MACROFLOW_APP" ]; then
     echo "❌ MacroFlow not found. Please install MacroFlow first."
     exit 1
 fi
 
-if [ \$# -eq 0 ]; then
-    echo "Usage: macro <macro-name> [parameters...]"
-    echo "Example: macro test /path/to/file.js"
-    echo "Example: macro testmultiple file1.js file2.js"
-    exit 1
-fi
-
-MACRO_NAME="\$1"
-shift
-PARAMS="\$@"
-
-# Execute the macro through MacroFlow
-"\$MACROFLOW_APP" run-macro "\$MACRO_NAME" \$PARAMS
+case "\$1" in
+    --v|--version)
+        "\$MACROFLOW_APP" "\$1"
+        exit \$?
+        ;;
+    --help)
+        "\$MACROFLOW_APP" "\$1"
+        exit \$?
+        ;;
+    "")
+        echo "Usage: macro <macro-name> [parameters...]"
+        echo "       macro --v, --version   Show version"
+        echo "       macro --help           Show help"
+        echo ""
+        echo "Examples:"
+        echo "  macro test               Run macro named 'test'"
+        echo "  macro deploy staging     Run macro with parameters"
+        exit 1
+        ;;
+    *)
+        MACRO_NAME="\$1"
+        shift
+        PARAMS="\$@"
+        "\$MACROFLOW_APP" run-macro "\$MACRO_NAME" \$PARAMS
+        ;;
+esac
 EOF
 
-# Make the global script executable
 sudo chmod +x "$GLOBAL_SCRIPT"
 
 echo ""
