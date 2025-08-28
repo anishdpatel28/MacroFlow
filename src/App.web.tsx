@@ -45,6 +45,7 @@ const App: React.FC = () => {
   const [isInstalling, setIsInstalling] = useState(false);
   const [installSuccess, setInstallSuccess] = useState(false);
   const [version, setVersion] = useState("1.0.0");
+  const [originalMacro, setOriginalMacro] = useState<Macro | null>(null);
 
   useEffect(() => {
     if (window.electronAPI) {
@@ -91,6 +92,34 @@ const App: React.FC = () => {
     }
   }, [macros]);
 
+  // Function to detect if there are actual changes from the original macro
+  const hasActualChanges = (): boolean => {
+    if (!selectedMacro) return false;
+
+    if (isCreating) {
+      // For new macros, check if any meaningful content was added
+      return (
+        selectedMacro.name.trim() !== "" ||
+        selectedMacro.description.trim() !== "" ||
+        selectedMacro.commands.some(cmd => cmd.trim() !== "") ||
+        selectedMacro.parameters.some(param => param.trim() !== "")
+      );
+    }
+
+    if (isEditing && originalMacro) {
+      // For editing, compare with original values
+      return (
+        selectedMacro.name !== originalMacro.name ||
+        selectedMacro.description !== originalMacro.description ||
+        selectedMacro.executionMode !== originalMacro.executionMode ||
+        JSON.stringify(selectedMacro.commands) !== JSON.stringify(originalMacro.commands) ||
+        JSON.stringify(selectedMacro.parameters) !== JSON.stringify(originalMacro.parameters)
+      );
+    }
+
+    return false;
+  };
+
   useEffect(() => {
     const handleMenuAction = (event: any, action: string) => {
       switch (action) {
@@ -122,12 +151,7 @@ const App: React.FC = () => {
 
   const handleNewMacro = () => {
     if (selectedMacro && (isCreating || isEditing)) {
-      const hasChanges = (
-        selectedMacro.name.trim() !== "" ||
-        selectedMacro.description.trim() !== "" ||
-        selectedMacro.commands.some(cmd => cmd.trim() !== "") ||
-        selectedMacro.parameters.some(param => param.trim() !== "")
-      );
+      const hasChanges = hasActualChanges();
 
       if (hasChanges && !confirm("You have unsaved changes. Do you want to discard them and create a new macro?")) {
         return;
@@ -143,6 +167,7 @@ const App: React.FC = () => {
       parameters: [],
       createdAt: new Date(),
     };
+    setOriginalMacro(null); // Clear original macro for new creation
     setSelectedMacro(newMacro);
     setIsCreating(true);
     setIsEditing(false);
@@ -165,6 +190,12 @@ const App: React.FC = () => {
   };
 
   const handleEditMacro = (macro: Macro) => {
+    // Store a deep copy of the original macro for comparison
+    setOriginalMacro({
+      ...macro,
+      commands: [...macro.commands],
+      parameters: [...macro.parameters]
+    });
     setSelectedMacro(macro);
     setIsEditing(true);
     setIsCreating(false);
@@ -205,6 +236,7 @@ const App: React.FC = () => {
     setSelectedMacro(null);
     setIsCreating(false);
     setIsEditing(false);
+    setOriginalMacro(null);
   };
 
   const handleDeleteMacro = (macroId: string) => {
@@ -214,6 +246,7 @@ const App: React.FC = () => {
         setSelectedMacro(null);
         setIsCreating(false);
         setIsEditing(false);
+        setOriginalMacro(null);
       }
     }
   };
@@ -541,9 +574,9 @@ const App: React.FC = () => {
               <div className="sidebar-actions">
                 <button className="btn-icon" onClick={handleImportMacros} title="Import Macros">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7,10 12,15 17,10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    <polyline points="11,12 15,16 19,12"/>
+                    <line x1="15" y1="16" x2="15" y2="8"/>
                   </svg>
                 </button>
                 <button className="btn-icon" onClick={handleExportMacros} title="Export Macros">
@@ -563,22 +596,19 @@ const App: React.FC = () => {
                 key={macro.id}
                 className={`macro-item ${selectedMacro?.id === macro.id ? "selected" : ""}`}
                 onClick={() => {
-                  if (isCreating) {
-                    const hasChanges = selectedMacro && (
-                      selectedMacro.name.trim() !== "" ||
-                      selectedMacro.description.trim() !== "" ||
-                      selectedMacro.commands.some(cmd => cmd.trim() !== "") ||
-                      selectedMacro.parameters.some(param => param.trim() !== "")
-                    );
+                  if (isCreating || isEditing) {
+                    const hasChanges = hasActualChanges();
 
                     if (hasChanges && confirm("You have unsaved changes. Do you want to discard them and view this macro?")) {
                       setSelectedMacro(macro);
                       setIsCreating(false);
                       setIsEditing(false);
+                      setOriginalMacro(null);
                     } else if (!hasChanges) {
                       setSelectedMacro(macro);
                       setIsCreating(false);
                       setIsEditing(false);
+                      setOriginalMacro(null);
                     }
                   } else {
                     if (selectedMacro?.id === macro.id) {
@@ -673,6 +703,7 @@ const App: React.FC = () => {
                     setSelectedMacro(null);
                     setIsCreating(false);
                     setIsEditing(false);
+                    setOriginalMacro(null);
                   }}
                 >
                   Cancel
@@ -802,9 +833,11 @@ const App: React.FC = () => {
               </div>
 
               <div className="form-actions">
-                <button className="btn-primary" onClick={handleSaveMacro}>
-                  {isCreating ? "Create Macro" : "Save Changes"}
-                </button>
+                {(isCreating || hasActualChanges()) && (
+                  <button className="btn-primary" onClick={handleSaveMacro}>
+                    {isCreating ? "Create Macro" : "Save Changes"}
+                  </button>
+                )}
               </div>
             </div>
           ) : selectedMacro ? (
@@ -817,6 +850,7 @@ const App: React.FC = () => {
                       setSelectedMacro(null);
                       setIsCreating(false);
                       setIsEditing(false);
+                      setOriginalMacro(null);
                     }}
                   >
                     <svg className="back-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
