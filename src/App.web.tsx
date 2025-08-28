@@ -32,14 +32,6 @@ const App: React.FC = () => {
   const [terminalInput, setTerminalInput] = useState("");
   const [terminalHistory, setTerminalHistory] = useState<string[]>([]);
   const [terminalHistoryIndex, setTerminalHistoryIndex] = useState(-1);
-  const [parameterPopup, setParameterPopup] = useState<{
-    show: boolean;
-    x: number;
-    y: number;
-    commandIndex: number;
-    cursorPosition: number;
-    filter: string;
-  } | null>(null);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
@@ -107,13 +99,18 @@ const App: React.FC = () => {
     }
 
     if (isEditing && originalMacro) {
-      // For editing, compare with original values
+      // For editing, compare with original values, but filter out empty strings for fair comparison
+      const currentCommands = selectedMacro.commands.filter(cmd => cmd.trim() !== "");
+      const originalCommands = originalMacro.commands.filter(cmd => cmd.trim() !== "");
+      const currentParameters = selectedMacro.parameters.filter(param => param.trim() !== "");
+      const originalParameters = originalMacro.parameters.filter(param => param.trim() !== "");
+
       return (
         selectedMacro.name !== originalMacro.name ||
         selectedMacro.description !== originalMacro.description ||
         selectedMacro.executionMode !== originalMacro.executionMode ||
-        JSON.stringify(selectedMacro.commands) !== JSON.stringify(originalMacro.commands) ||
-        JSON.stringify(selectedMacro.parameters) !== JSON.stringify(originalMacro.parameters)
+        JSON.stringify(currentCommands) !== JSON.stringify(originalCommands) ||
+        JSON.stringify(currentParameters) !== JSON.stringify(originalParameters)
       );
     }
 
@@ -233,7 +230,8 @@ const App: React.FC = () => {
       setMacros(prev => prev.map(m => m.id === selectedMacro.id ? filteredMacro : m));
     }
 
-    setSelectedMacro(null);
+    // Keep the macro selected but exit edit/create mode to show the details
+    setSelectedMacro(filteredMacro);
     setIsCreating(false);
     setIsEditing(false);
     setOriginalMacro(null);
@@ -452,31 +450,7 @@ const App: React.FC = () => {
     }
   };
 
-  const selectParameter = (parameter: string) => {
-    if (parameterPopup && selectedMacro) {
-      const { commandIndex, cursorPosition } = parameterPopup;
-      const currentCommand = selectedMacro.commands[commandIndex];
-      const beforeCursor = currentCommand.substring(0, cursorPosition - parameterPopup.filter.length - 2);
-      const afterCursor = currentCommand.substring(cursorPosition);
-      const newCommand = beforeCursor + `{{${parameter}}}` + afterCursor;
 
-      setSelectedMacro(prev => prev ? {
-        ...prev,
-        commands: prev.commands.map((cmd, i) => i === commandIndex ? newCommand : cmd)
-      } : null);
-
-      setParameterPopup(null);
-
-      setTimeout(() => {
-        const input = document.querySelector(`input[data-command-index="${commandIndex}"]`) as HTMLInputElement;
-        if (input) {
-          input.focus();
-          const newPosition = beforeCursor.length + parameter.length + 4;
-          input.setSelectionRange(newPosition, newPosition);
-        }
-      }, 0);
-    }
-  };
 
   const addParameter = () => {
     if (selectedMacro) {
@@ -889,7 +863,27 @@ const App: React.FC = () => {
                   {selectedMacro.commands.map((command, index) => (
                     <div key={index} className="command-item">
                       <span className="command-number">{index + 1}</span>
-                      <code className="command-text">{command}</code>
+                      <code className="command-text">
+                        {command.split(/(\{\{[^}]+\}\})/).map((part, partIndex) => {
+                          if (part.match(/^\{\{[^}]+\}\}$/)) {
+                            const paramName = part.slice(2, -2);
+                            if (selectedMacro.parameters.includes(paramName)) {
+                              return (
+                                <span key={partIndex} className="parameter-highlight">
+                                  {paramName}
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span key={partIndex} className="parameter-unknown">
+                                  {part}
+                                </span>
+                              );
+                            }
+                          }
+                          return part;
+                        })}
+                      </code>
                     </div>
                   ))}
                 </div>
@@ -923,35 +917,7 @@ const App: React.FC = () => {
                 </div>
               )}
 
-              {/* Parameter popup */}
-              {parameterPopup && parameterPopup.show && (
-                <div
-                  className="parameter-popup"
-                  style={{
-                    position: 'fixed',
-                    left: parameterPopup.x,
-                    top: parameterPopup.y,
-                    zIndex: 1000
-                  }}
-                >
-                  <div className="popup-header">
-                    <span>Select Parameter</span>
-                  </div>
-                  <div className="popup-content">
-                    {selectedMacro?.parameters
-                      .filter(param => param.toLowerCase().includes(parameterPopup.filter.toLowerCase()))
-                      .map(param => (
-                        <div
-                          key={param}
-                          className="popup-item"
-                          onClick={() => selectParameter(param)}
-                        >
-                          {param}
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
+
             </div>
           ) : (
             <div className="welcome">
