@@ -443,36 +443,12 @@ const App: React.FC = () => {
     }
   };
 
-  const updateCommand = (index: number, value: string, event?: React.ChangeEvent<HTMLInputElement>) => {
+  const updateCommand = (index: number, value: string) => {
     if (selectedMacro) {
       setSelectedMacro(prev => prev ? {
         ...prev,
         commands: prev.commands.map((cmd, i) => i === index ? value : cmd)
       } : null);
-
-      if (event) {
-        const input = event.target;
-        const cursorPosition = input.selectionStart || 0;
-        const textBeforeCursor = value.substring(0, cursorPosition);
-
-        const match = textBeforeCursor.match(/\{\{([^}]*)$/);
-        if (match) {
-          const filter = match[1];
-          const rect = input.getBoundingClientRect();
-          const charWidth = 8;
-          const popupX = rect.left + Math.min(cursorPosition * charWidth, rect.width - 200);
-          setParameterPopup({
-            show: true,
-            x: popupX,
-            y: rect.bottom + 5,
-            commandIndex: index,
-            cursorPosition,
-            filter
-          });
-        } else {
-          setParameterPopup(null);
-        }
-      }
     }
   };
 
@@ -723,7 +699,11 @@ const App: React.FC = () => {
                     }
                   }}
                   placeholder="Enter macro alias"
+                  maxLength={50}
                 />
+                <div className={`character-count ${selectedMacro.name.length > 40 ? 'character-count-warning' : ''}`}>
+                  {selectedMacro.name.length}/50 characters
+                </div>
               </div>
 
               <div className="form-group">
@@ -739,7 +719,12 @@ const App: React.FC = () => {
                   }}
                   placeholder="Enter macro description"
                   rows={1}
+                  maxLength={500}
+                  className="no-resize"
                 />
+                <div className={`character-count ${selectedMacro.description.length > 450 ? 'character-count-warning' : ''}`}>
+                  {selectedMacro.description.length}/500 characters
+                </div>
               </div>
 
               <div className="form-group">
@@ -757,37 +742,18 @@ const App: React.FC = () => {
                 <label>Commands</label>
                 {selectedMacro.commands.map((command, index) => (
                   <div key={index} className="command-input">
-                    <div className="command-input-wrapper">
-                      <div className="command-display">
-                        {command ? command.split(/(\{\{[^}]+\}\})/).map((part, partIndex) => {
-                          if (part.match(/^\{\{[^}]+\}\}$/)) {
-                            const paramName = part.slice(2, -2);
-                            if (selectedMacro.parameters.includes(paramName)) {
-                              return (
-                                <span key={partIndex} className="parameter-block">
-                                  {paramName}
-                                </span>
-                              );
-                            }
-                          }
-                          return part;
-                        }) : <span className="placeholder-text">Enter command (use {`{{parameter}}`} for placeholders)</span>}
-                      </div>
-                      <input
-                        type="text"
-                        value={command}
-                        onChange={(e) => updateCommand(index, e.target.value, e)}
-                        onKeyDown={(e) => {
-                          if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
-                            e.preventDefault();
-                            e.currentTarget.select();
-                          }
-                        }}
-                        placeholder="Enter command (use {{parameter}} for placeholders)"
-                        data-command-index={index}
-                        className="command-input-hidden"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      value={command}
+                      onChange={(e) => updateCommand(index, e.target.value)}
+                      onKeyDown={(e) => {
+                        if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+                          e.preventDefault();
+                          e.currentTarget.select();
+                        }
+                      }}
+                      placeholder="Enter command (use {{parameter}} for placeholders)"
+                    />
                     {selectedMacro.commands.length > 1 && (
                       <button
                         className="btn-remove"

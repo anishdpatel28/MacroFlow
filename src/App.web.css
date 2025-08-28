@@ -554,6 +554,22 @@ body {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+.no-resize {
+  resize: none;
+}
+
+.character-count {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-align: right;
+  margin-top: 0.25rem;
+}
+
+.character-count-warning {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
 .macro-editor h2 {
   margin: 0;
   color: #1e293b;
