@@ -15,7 +15,7 @@ const macroName = args[1];
 const macroParams = args.slice(2);
 
 // CLI mode flag
-const isCliMode = command === "run-macro" || command === "--v" || command === "--version" || command === "--help";
+const isCliMode = command === "run-macro" || command === "--v" || command === "--version" || command === "--help" || command === "-v" || command === "-version" || command === "-help" || command === "-h";
 
 let mainWindow;
 
@@ -463,9 +463,9 @@ async function executeMacro(macro, parameters) {
 app.whenReady().then(() => {
   if (isCliMode) {
     // CLI mode - no GUI needed
-    if (command === "--v" || command === "--version") {
+    if (command === "--v" || command === "--version" || command === "-v" || command === "-version") {
       showVersion();
-    } else if (command === "--help") {
+    } else if (command === "--help" || command === "-help" || command === "-h") {
       showHelp();
     } else if (command === "run-macro" && macroName) {
       runMacroFromCLI(macroName, macroParams);

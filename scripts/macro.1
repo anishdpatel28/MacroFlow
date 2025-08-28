@@ -1,0 +1,59 @@
+.TH MACRO 1 "August 2024" "MacroFlow 1.0.0" "User Commands"
+.SH NAME
+macro \- A powerful macro management tool for developers
+.SH SYNOPSIS
+.B macro
+.I <macro-name>
+.RI [ parameters... ]
+.br
+.B macro
+.BR \-\-v ", " \-\-version ", " \-v ", " \-version
+.br
+.B macro
+.BR \-\-help ", " \-help ", " \-h
+.SH DESCRIPTION
+.B macro
+is a command-line interface for MacroFlow, a powerful macro management tool that allows developers to create, manage, and execute command macros with ease.
+.PP
+MacroFlow enables you to:
+.IP \[bu] 2
+Execute multiple commands with a single invocation
+.IP \[bu] 2
+Use parameters for dynamic command execution
+.IP \[bu] 2
+Choose between concurrent and sequential execution modes
+.IP \[bu] 2
+Save and share macro collections
+.SH OPTIONS
+.TP
+.BR \-\-v ", " \-\-version ", " \-v ", " \-version
+Show version information and exit.
+.TP
+.BR \-\-help ", " \-help ", " \-h
+Show help information and exit.
+.SH EXAMPLES
+.TP
+.B macro test
+Run the macro named "test"
+.TP
+.B macro deploy staging
+Run the macro named "deploy" with the parameter "staging"
+.TP
+.B macro build /path/to/project
+Run the macro named "build" with the path parameter "/path/to/project"
+.TP
+.B macro --version
+Display version information
+.TP
+.B macro --help
+Display help information
+.SH FILES
+.TP
+.I ~/Library/Application Support/macroflow/macroflow-macros.json
+User's macro configuration file (macOS)
+.SH SEE ALSO
+For more information about MacroFlow, including GUI usage and advanced features, please refer to the MacroFlow documentation.
+.SH AUTHOR
+MacroFlow development team
+.SH BUGS
+Report bugs to the MacroFlow issue tracker on GitHub.
