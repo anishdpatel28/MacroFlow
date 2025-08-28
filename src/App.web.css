@@ -255,6 +255,15 @@ body {
   overflow-y: auto;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Special styling for welcome page to center content and avoid scrolling */
+.content.welcome-mode {
+  justify-content: center;
+  overflow: hidden;
 }
 
 /* Buttons */
@@ -1200,7 +1209,11 @@ body {
   text-align: center;
   max-width: 600px;
   margin: 0 auto;
-  padding: 3rem 0;
+  padding: 1rem 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .welcome h2 {

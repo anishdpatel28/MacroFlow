@@ -642,7 +642,7 @@ const App: React.FC = () => {
           </div>
         </nav>
 
-        <main className="content">
+        <main className={`content ${!selectedMacro && !isCreating && !isEditing ? 'welcome-mode' : ''}`}>
           {selectedMacro && (isCreating || isEditing) ? (
             <div className="macro-editor">
               <div className="editor-header">
