@@ -4,6 +4,11 @@ const fs = require("fs");
 const { exec } = require("child_process");
 const isDev = process.env.NODE_ENV === "development";
 
+// Set consistent userData path for development mode
+if (isDev) {
+  app.setPath('userData', path.join(app.getPath('appData'), 'MacroFlow'));
+}
+
 // Read package.json for version
 const packageJsonPath = path.join(__dirname, '../package.json');
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
