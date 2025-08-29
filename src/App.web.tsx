@@ -149,7 +149,7 @@ const App: React.FC = () => {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Only handle shortcuts when no input fields are focused
+      // Check if input fields are focused (for most shortcuts)
       const activeElement = document.activeElement;
       const isInputFocused = activeElement && (
         activeElement.tagName === 'INPUT' ||
@@ -157,13 +157,23 @@ const App: React.FC = () => {
         (activeElement as HTMLElement).contentEditable === 'true'
       );
 
-      if (isInputFocused) return;
-
-      // Cmd + Delete - Delete macro (Mac only)
-      if (event.metaKey && event.key === 'Delete' && selectedMacro && !isCreating) {
+      // Cmd + Delete - Delete macro (Mac only, works in both info and edit modes)
+      // Allow this even when input fields are focused
+      if (event.metaKey && (event.key === 'Delete' || event.key === 'Backspace') && selectedMacro && !isCreating) {
         event.preventDefault();
-        handleDeleteMacro(selectedMacro.id);
+        // Inline delete logic to avoid closure issues
+        if (confirm("Are you sure you want to delete this macro?")) {
+          setMacros(prev => prev.filter(m => m.id !== selectedMacro.id));
+          setSelectedMacro(null);
+          setIsCreating(false);
+          setIsEditing(false);
+          setOriginalMacro(null);
+        }
+        return;
       }
+
+      // Only handle other shortcuts when no input fields are focused
+      if (isInputFocused) return;
 
       // Escape - Close keyboard shortcuts popup
       if (event.key === 'Escape' && showKeyboardShortcuts) {
@@ -200,8 +210,8 @@ const App: React.FC = () => {
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedMacro, isCreating, isEditing, showKeyboardShortcuts]);
 
   const handleNewMacro = () => {
