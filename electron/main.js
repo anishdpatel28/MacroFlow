@@ -20,7 +20,7 @@ const macroName = args[1];
 const macroParams = args.slice(2);
 
 // CLI mode flag
-const isCliMode = command === "run-macro" || command === "--v" || command === "--version" || command === "--help" || command === "-v" || command === "-version" || command === "-help" || command === "-h";
+const isCliMode = command === "run-macro" || command === "--v" || command === "--version" || command === "--help" || command === "-v" || command === "-version" || command === "-help" || command === "-h" || command === "--list" || command === "-l";
 
 let mainWindow;
 
@@ -342,6 +342,7 @@ function showHelp() {
   console.log('  macro <macro-name> [parameters...]    Run a macro');
   console.log('  macro --v, --version                  Show version');
   console.log('  macro --help                          Show this help');
+  console.log('  macro --list, -l                      List all available macros');
   console.log('');
   console.log('Examples:');
   console.log('  macro test                            Run macro named "test"');
@@ -350,6 +351,30 @@ function showHelp() {
   console.log('');
   console.log('For more information, visit: https://github.com/yourusername/macroflow');
   app.quit();
+}
+
+function listMacros() {
+  try {
+    const userDataPath = app.getPath('userData');
+    const macrosPath = path.join(userDataPath, 'macroflow-macros.json');
+    
+    let macros = [];
+    if (fs.existsSync(macrosPath)) {
+      const data = fs.readFileSync(macrosPath, 'utf8');
+      macros = JSON.parse(data);
+    }
+    
+    if (macros.length === 0) {
+      console.log('No macros found.');
+    } else {
+      console.log('Available macros:');
+      macros.forEach(m => console.log(`  - ${m.name}`));
+    }
+    app.quit();
+  } catch (error) {
+    console.error(`Error listing macros: ${error.message}`);
+    app.quit();
+  }
 }
 
 async function runMacroFromCLI(macroName, params) {
@@ -366,8 +391,6 @@ async function runMacroFromCLI(macroName, params) {
     const macro = macros.find(m => m.name === macroName);
     if (!macro) {
       console.error(`Macro "${macroName}" not found`);
-      console.log("Available macros:");
-      macros.forEach(m => console.log(`  - ${m.name}`));
       app.quit();
       return;
     }
@@ -379,33 +402,24 @@ async function runMacroFromCLI(macroName, params) {
       });
     }
     
-    console.log(`🚀 Running macro: ${macro.name}`);
-    console.log(`📋 Commands: ${macro.commands.length}`);
-    console.log(`⚡ Mode: ${macro.executionMode}`);
-    
     const results = await executeMacro(macro, parameters);
     
-    console.log("\n📊 Execution Results:");
-    results.forEach((result, index) => {
-      console.log(`\n${index + 1}. ${result.command}`);
+    results.forEach((result, _) => {
+      console.log(`$ ${result.command}`);
       if (result.error) {
-        console.log(`   ❌ Error: ${result.error}`);
-      } else {
-        console.log(`   ✅ Success`);
-        if (result.stdout) {
-          console.log(`   📤 Output: ${result.stdout.trim()}`);
-        }
+        console.error((result.stderr || result.error).trim());
+      } else if (result.stdout) {
+        console.log(`${result.stdout.trim()}`);
       }
     });
     
     macro.lastRun = new Date().toISOString();
     fs.writeFileSync(macrosPath, JSON.stringify(macros, null, 2));
     
-    console.log("\n✅ Macro execution completed");
     app.quit();
     
   } catch (error) {
-    console.error(`❌ Error running macro: ${error.message}`);
+    console.error(`${error.message}`);
     app.quit();
   }
 }
@@ -472,6 +486,8 @@ app.whenReady().then(() => {
       showVersion();
     } else if (command === "--help" || command === "-help" || command === "-h") {
       showHelp();
+    } else if (command === "--list" || command === "-l") {
+      listMacros();
     } else if (command === "run-macro" && macroName) {
       runMacroFromCLI(macroName, macroParams);
     } else {
