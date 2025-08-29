@@ -1253,6 +1253,12 @@ body {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   height: 200px;
   
+  /* Center content vertically and horizontally */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  
   /* Only two animations: entry and hover */
   animation: slideInFromTop 0.6s ease-out;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
