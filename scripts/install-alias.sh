@@ -64,10 +64,14 @@ if [[ "$MACROFLOW_APP" == *"NODE_ENV=development"* ]]; then
         --help|-help|-h)
             cd "'$MACROFLOW_DIR'" && NODE_ENV=development "'$MACROFLOW_DIR'/node_modules/.bin/electron" "'$MACROFLOW_DIR'/electron/main.js" "--help"
             ;;
+        --list|-l)
+            cd "'$MACROFLOW_DIR'" && NODE_ENV=development "'$MACROFLOW_DIR'/node_modules/.bin/electron" "'$MACROFLOW_DIR'/electron/main.js" "--list"
+            ;;
         "")
             echo "Usage: macro <macro-name> [parameters...]"
             echo "       macro --v, --version, -v, -version   Show version"
             echo "       macro --help, -help, -h              Show help"
+            echo "       macro --list, -l                     List all available macros"
             echo ""
             echo "Examples:"
             echo "  macro test               Run macro named '\''test'\''"
@@ -87,10 +91,14 @@ else
         --help|-help|-h)
             "'$MACROFLOW_APP'" "--help"
             ;;
+        --list|-l)
+            "'$MACROFLOW_APP'" "--list"
+            ;;
         "")
             echo "Usage: macro <macro-name> [parameters...]"
             echo "       macro --v, --version, -v, -version   Show version"
             echo "       macro --help, -help, -h              Show help"
+            echo "       macro --list, -l                     List all available macros"
             echo ""
             echo "Examples:"
             echo "  macro test               Run macro named '\''test'\''"
@@ -228,9 +236,9 @@ echo "📋 Usage examples:"
 echo "  macro test /path/to/file.js"
 echo "  macro testmultiple file1.js file2.js"
 echo "  macro dev-setup"
-echo "  macro --help                    # Show help"
-echo "  macro -v                        # Show version"
-echo "  man macro                       # Show manual page"
+echo "  macro --help
+echo "  macro -v
+echo "  man macro
 echo ""
 echo "🔄 To use the aliases in current terminal:"
 echo "  source ~/.zshrc  # or ~/.bashrc"
